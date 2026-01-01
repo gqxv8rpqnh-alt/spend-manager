@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import clsx from "clsx"; // Assuming clsx might be used, keeping imports clean
+import clsx from "clsx"; 
 
 /* =========================================================
    1. ICONS (Defined locally to prevent import crashes)
@@ -36,7 +36,7 @@ const Icons = {
   User: (p) => <Icon {...p} path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>} />,
   X: (p) => <Icon {...p} path={<><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>} />,
   Camera: (p) => <Icon {...p} path={<><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></>} />,
-  Sparkles: (p) => <Icon {...p} path={<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />} />,
+  Sparkles: (p) => <Icon {...p} path={<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />} />,
   Share: (p) => <Icon {...p} path={<><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></>} />,
   ArrowRight: (p) => <Icon {...p} path={<><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></>} />,
   ChevronUp: (p) => <Icon {...p} path={<polyline points="18 15 12 9 6 15" />} />,
@@ -1513,7 +1513,8 @@ function MainContent() {
     let type = acc.type;
     if (!type) type = ASSET_LABELS.includes(acc.label) ? "asset" : "liability";
     const { isNew, ...rest } = acc;
-    const data = { ...rest, type, isActive: acc.isActive !== false };
+    // Fix: Generate ID if missing so upsert works correctly
+    const data = { ...rest, id: rest.id || generateID(), type, isActive: acc.isActive !== false };
     
     const updated = LocalDB.upsertAccount(data);
     setNwAccounts(updated);
@@ -1573,7 +1574,7 @@ function MainContent() {
       });
     }
 
-    const newAccts = LocalDB.upsertAccount(accounts[0]); // Hacky insert one by one or create bulk method. We'll iterate
+    const newAccts = LocalDB.upsertAccount(accounts[0]); 
     LocalDB.upsertAccount(accounts[1]);
     const finalAccts = LocalDB.getAccounts(); // Reload full list
     
@@ -1585,7 +1586,7 @@ function MainContent() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen max-w-md mx-auto bg-[#F4F6F8] font-sans text-slate-900 border-x border-slate-200 shadow-2xl relative overflow-hidden">
+    <div className="flex flex-col h-screen max-w-md mx-auto bg-[#F4F6F8] font-sans text-slate-900 border-x border-slate-200 shadow-2xl relative overflow-hidden">
       <div className="flex items-center justify-between p-6 pb-4 z-10 bg-[#F4F6F8]/90 backdrop-blur-md sticky top-0">
         <div>
           <h1 className="text-xl font-bold text-slate-800 tracking-tight">{activeTab === "networth" ? "Net Worth" : "Spend Manager"}</h1>
