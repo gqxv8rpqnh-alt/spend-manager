@@ -1585,7 +1585,7 @@ function MainContent() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-md mx-auto bg-[#F4F6F8] font-sans text-slate-900 border-x border-slate-200 shadow-2xl relative overflow-hidden">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto bg-[#F4F6F8] font-sans text-slate-900 border-x border-slate-200 shadow-2xl relative overflow-hidden">
       <div className="flex items-center justify-between p-6 pb-4 z-10 bg-[#F4F6F8]/90 backdrop-blur-md sticky top-0">
         <div>
           <h1 className="text-xl font-bold text-slate-800 tracking-tight">{activeTab === "networth" ? "Net Worth" : "Spend Manager"}</h1>
