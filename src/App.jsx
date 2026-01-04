@@ -1,1423 +1,1635 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  CheckCircle2, 
-  Flame, 
-  Archive, 
-  Plus, 
-  Filter, 
-  Briefcase, 
-  Trophy, 
-  Layout,
-  X,
-  Save,
-  MoreHorizontal,
-  Edit2,
-  Trash2,
-  Check,
-  AlertCircle,
-  RefreshCw,
-  Copy,
-  RotateCcw,
-  ChevronDown,
-  ChevronRight,
-  ArrowUpRight,
-  Tag,
-  FileDown,
-  Pencil
-} from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import clsx from "clsx"; 
 
-const STRATEGIC_TAGS = [
-  'Launch', 'Measurement', 'Optimization', 'Recovery', 
-  'Testing', 'Automation', 'Reporting', 'Stakeholder'
+/* =========================================================
+   1. xxxxxICONS (Defined locally to prevent import crashes)
+========================================================= */
+const Icon = ({ path, size = 20, className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {path}
+  </svg>
+);
+
+const Icons = {
+  AlertCircle: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>} />,
+  AlertTriangle: (p) => <Icon {...p} path={<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></>} />,
+  Check: (p) => <Icon {...p} path={<polyline points="20 6 9 17 4 12" />} />,
+  ChevronLeft: (p) => <Icon {...p} path={<polyline points="15 18 9 12 15 6" />} />,
+  ChevronRight: (p) => <Icon {...p} path={<polyline points="9 18 15 12 9 6" />} />,
+  List: (p) => <Icon {...p} path={<><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></>} />,
+  PieChart: (p) => <Icon {...p} path={<><path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" /></>} />,
+  Landmark: (p) => <Icon {...p} path={<><line x1="3" y1="22" x2="21" y2="22" /><line x1="6" y1="18" x2="6" y2="11" /><line x1="10" y1="18" x2="10" y2="11" /><line x1="14" y1="18" x2="14" y2="11" /><line x1="18" y1="18" x2="18" y2="11" /><polygon points="12 2 20 7 4 7" /></>} />,
+  Settings: (p) => <Icon {...p} path={<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />} />,
+  Plus: (p) => <Icon {...p} path={<><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>} />,
+  Trash2: (p) => <Icon {...p} path={<><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></>} />,
+  User: (p) => <Icon {...p} path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>} />,
+  X: (p) => <Icon {...p} path={<><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>} />,
+  Camera: (p) => <Icon {...p} path={<><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></>} />,
+  Sparkles: (p) => <Icon {...p} path={<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />} />,
+  Share: (p) => <Icon {...p} path={<><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></>} />,
+  ArrowRight: (p) => <Icon {...p} path={<><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></>} />,
+  ChevronUp: (p) => <Icon {...p} path={<polyline points="18 15 12 9 6 15" />} />,
+  ChevronDown: (p) => <Icon {...p} path={<polyline points="6 9 12 15 18 9" />} />
+};
+
+/* =========================================================
+   2. CONFIG, UTILS, STORAGE ADAPTER
+========================================================= */
+
+// Local Storage Keys
+const STORE_KEYS = {
+  CATS: "sm_v1_categories",
+  TXS: "sm_v1_transactions",
+  ACCTS: "sm_v1_nw_accounts",
+  SNAPS: "sm_v1_nw_snapshots"
+};
+
+const DEFAULT_CATEGORIES = [
+  { id: "rent", name: "Rent", budget: 2430, color: "#10b981" },
+  { id: "food", name: "Food", budget: 500, color: "#f59e0b" },
+  { id: "trans", name: "Transportation", budget: 100, color: "#3b82f6" },
+  { id: "bills", name: "Bills", budget: 100, color: "#ef4444" },
+  { id: "subs", name: "Subscriptions", budget: 70, color: "#8b5cf6" },
+  { id: "target", name: "Target", budget: 100, color: "#ec4899" },
+  { id: "save", name: "Savings", budget: 600, color: "#059669" },
+  { id: "invest", name: "Invest", budget: 50, color: "#047857" },
+  { id: "misc", name: "Misc", budget: 500, color: "#64748B" },
 ];
 
-export default function App() {
-  // --- Helpers ---
-  const getQuarter = (dateStr) => {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return 'Q1'; // Fallback
-    const month = date.getMonth(); // 0-11
-    if (month <= 2) return 'Q1';
-    if (month <= 5) return 'Q2';
-    if (month <= 8) return 'Q3';
-    return 'Q4';
-  };
-
-  const getCurrentQuarter = () => getQuarter(new Date());
-
-  const getClientColor = (client) => {
-    if (!client) return 'bg-gray-100 text-gray-800 border-gray-200';
-    let hash = 0;
-    for (let i = 0; i < client.length; i++) {
-      hash = client.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const colors = [
-      'bg-blue-100 text-blue-800 border-blue-200',
-      'bg-purple-100 text-purple-800 border-purple-200',
-      'bg-emerald-100 text-emerald-800 border-emerald-200',
-      'bg-amber-100 text-amber-800 border-amber-200',
-      'bg-indigo-100 text-indigo-800 border-indigo-200',
-      'bg-rose-100 text-rose-800 border-rose-200',
-      'bg-cyan-100 text-cyan-800 border-cyan-200',
-      'bg-teal-100 text-teal-800 border-teal-200',
-      'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200'
-    ];
-    const index = Math.abs(hash) % colors.length;
-    return colors[index];
-  };
-
-  // --- State ---
-  const [activeTab, setActiveTab] = useState('workstream'); 
-  const [clientFilter, setClientFilter] = useState('All Clients');
-  const [selectedQuarter, setSelectedQuarter] = useState(getCurrentQuarter());
-  const [tagFilter, setTagFilter] = useState('All Tags');
-  
-  // Client Management
-  const [clients, setClients] = useState(['Client A', 'Client B', 'Client C', 'Internal']);
-  const [isClientMenuOpen, setIsClientMenuOpen] = useState(false);
-  const [newClientInput, setNewClientInput] = useState('');
-  const [editingClient, setEditingClient] = useState(null); 
-  const [editClientText, setEditClientText] = useState('');
-  
-  // Delete Confirmation
-  const [clientToDelete, setClientToDelete] = useState(null);
-
-  // Import Modal State
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importText, setImportText] = useState('');
-  const [importStats, setImportStats] = useState(null); 
-  const [importConfirmationStep, setImportConfirmationStep] = useState(false); 
-
-  // Reset Application State
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState(false);
-
-  // Row Expansion
-  const [expandedRows, setExpandedRows] = useState(new Set());
-
-  // Export Feedback (String for custom messages)
-  const [copyFeedback, setCopyFeedback] = useState('');
-
-  // Data
-  const [tasks, setTasks] = useState([]);
-  const [pendingTasks, setPendingTasks] = useState([]); 
-  const [qbrLog, setQbrLog] = useState([]);
-
-  // Inputs
-  const [newTaskText, setNewTaskText] = useState('');
-  const [newTaskClient, setNewTaskClient] = useState('');
-  const [isFireDrill, setIsFireDrill] = useState(false);
-  
-  // Pending Section State
-  const [isPendingCollapsed, setIsPendingCollapsed] = useState(true);
-
-  // Manual QBR Entry
-  const [manualQbrText, setManualQbrText] = useState('');
-  const [manualQbrClient, setManualQbrClient] = useState('');
-  const [manualQbrType, setManualQbrType] = useState('Task');
-  const [manualQbrImpact, setManualQbrImpact] = useState('');
-  const [manualTags, setManualTags] = useState([]);
-  const [showManualQbrForm, setShowManualQbrForm] = useState(false);
-
-  // Modal & Undo State
-  const [completingTask, setCompletingTask] = useState(null); 
-  const [impactNote, setImpactNote] = useState('');
-  const [completionTags, setCompletionTags] = useState([]);
-  const [showUndoToast, setShowUndoToast] = useState(false);
-  const undoTimerRef = useRef(null);
-
-  // Edit Entry State
-  const [editingEntry, setEditingEntry] = useState(null);
-  const [editItemText, setEditItemText] = useState('');
-  const [editImpactText, setEditImpactText] = useState('');
-  const [editEntryType, setEditEntryType] = useState('');
-  const [editEntryTags, setEditEntryTags] = useState([]);
-
-  // Edit Active Task State
-  const [editingTask, setEditingTask] = useState(null);
-  const [editTaskTextState, setEditTaskTextState] = useState('');
-  const [editTaskClientState, setEditTaskClientState] = useState('');
-  const [editTaskFireDrillState, setEditTaskFireDrillState] = useState(false);
-
-  if (!newTaskClient && clients.length > 0) setNewTaskClient(clients[0]);
-  if (!manualQbrClient && clients.length > 0) setManualQbrClient(clients[0]);
-
-  // --- Actions ---
-
-  const handleAddClient = (e) => {
-    e.preventDefault();
-    if (!newClientInput.trim()) return;
-    if (clients.includes(newClientInput.trim())) return; 
-    setClients([...clients, newClientInput.trim()]);
-    setNewClientInput('');
-  };
-
-  const startEditingClient = (clientName) => {
-    setEditingClient(clientName);
-    setEditClientText(clientName);
-  };
-
-  const saveClientEdit = () => {
-    if (!editClientText.trim() || !editingClient) return;
-    const newName = editClientText.trim();
-    const oldName = editingClient;
-
-    if (newName !== oldName) {
-        if (clients.includes(newName)) return;
-        setClients(clients.map(c => c === oldName ? newName : c));
-        setTasks(tasks.map(t => t.client === oldName ? { ...t, client: newName } : t));
-        setPendingTasks(pendingTasks.map(t => t.client === oldName ? { ...t, client: newName } : t));
-        setQbrLog(qbrLog.map(l => l.client === oldName ? { ...l, client: newName } : l));
-        
-        if (clientFilter === oldName) setClientFilter(newName);
-        if (newTaskClient === oldName) setNewTaskClient(newName);
-        if (manualQbrClient === oldName) setManualQbrClient(newName);
-    }
-    setEditingClient(null);
-    setEditClientText('');
-  };
-
-  const promptDeleteClient = (client) => {
-    setClientToDelete(client);
-    setIsClientMenuOpen(false); 
-  };
-
-  const executeDeleteClient = () => {
-    if (!clientToDelete) return;
-    const client = clientToDelete;
-    const newClients = clients.filter(c => c !== client);
-    setClients(newClients);
-    setTasks(tasks.filter(t => t.client !== client));
-    setPendingTasks(pendingTasks.filter(t => t.client !== client));
-    setQbrLog(qbrLog.filter(l => l.client !== client));
-    if (clientFilter === client) setClientFilter('All Clients');
-    if (newTaskClient === client && newClients.length > 0) setNewTaskClient(newClients[0]);
-    if (manualQbrClient === client && newClients.length > 0) setManualQbrClient(newClients[0]);
-    setClientToDelete(null);
-  };
-
-  const loadDemoData = () => {
-    if (tasks.length > 0 || qbrLog.length > 0 || pendingTasks.length > 0) {
-       if (!window.confirm("Replace current data with robust demo data? This will overwrite everything.")) return;
-    }
-
-    const demoClients = [
-      'Apex Fitness', 'Summit Financial', 'Urban Roots', 'TechFlow SaaS', 
-      'Omega Retail', 'BrightPath Edu', 'Internal'
-    ];
-
-    const getRelDate = (daysAgo) => {
-        const d = new Date();
-        d.setDate(d.getDate() - daysAgo);
-        return d.toLocaleDateString();
-    };
-
-    const demoTasks = [
-      { id: 1001, text: 'Audit Q4 search query reports for negative keywords', client: 'Apex Fitness', isFireDrill: false, date: getRelDate(0) },
-      { id: 1002, text: 'Set up RSA variations for Spring Sale', client: 'Omega Retail', isFireDrill: false, date: getRelDate(0) },
-      { id: 1003, text: 'Debug GTM container firing issues on checkout', client: 'TechFlow SaaS', isFireDrill: true, date: getRelDate(0) },
-      { id: 1004, text: 'Refresh audience lists for remarketing', client: 'Summit Financial', isFireDrill: false, date: getRelDate(1) },
-      { id: 1005, text: 'Competitor auction insight analysis', client: 'BrightPath Edu', isFireDrill: false, date: getRelDate(1) },
-      { id: 1006, text: 'Launch PMax campaign for new product line', client: 'Urban Roots', isFireDrill: false, date: getRelDate(2) },
-      { id: 1007, text: 'Investigate sudden CPA spike in Non-Brand', client: 'TechFlow SaaS', isFireDrill: true, date: getRelDate(2) },
-      { id: 1008, text: 'Submit weekly timesheets', client: 'Internal', isFireDrill: false, date: getRelDate(3) },
-      { id: 1009, text: 'Check Merchant Center disapproval errors', client: 'Omega Retail', isFireDrill: true, date: getRelDate(3) },
-      { id: 1010, text: 'Update sitelink extensions for Q2 promos', client: 'Apex Fitness', isFireDrill: false, date: getRelDate(4) },
-      { id: 1011, text: 'Review auto-applied recommendations', client: 'Summit Financial', isFireDrill: false, date: getRelDate(4) },
-      { id: 1012, text: 'Draft ad copy for new "Eco-Friendly" angle', client: 'Urban Roots', isFireDrill: false, date: getRelDate(5) },
-    ];
-
-    const demoPending = [
-      { id: 2001, text: 'Weekly budget pacing check', client: 'Summit Financial', isFireDrill: false, date: getRelDate(1) },
-      { id: 2002, text: 'Keyword expansion research', client: 'BrightPath Edu', isFireDrill: false, date: getRelDate(2) },
-      { id: 2003, text: 'Bid adjustment for competitor conquesting', client: 'TechFlow SaaS', isFireDrill: false, date: getRelDate(3) },
-      { id: 2004, text: 'Google Ads support call regarding account suspension warning', client: 'Omega Retail', isFireDrill: true, date: getRelDate(4) },
-      { id: 2005, text: 'Setup Google Analytics 4 audience triggers', client: 'Apex Fitness', isFireDrill: false, date: getRelDate(5) },
-      { id: 2006, text: 'Team sync regarding new attribution tool', client: 'Internal', isFireDrill: false, date: getRelDate(6) },
-      { id: 2007, text: 'Verify UTM tracking parameters for newsletter', client: 'Urban Roots', isFireDrill: false, date: getRelDate(7) },
-    ];
-
-    const demoLog = [
-      { id: 3001, date: getRelDate(2), client: 'TechFlow SaaS', item: 'Fixed broken conversion tag', type: 'Fire Drill', impact: 'Restored conversion tracking accuracy. Identified 48 hours of missing data and annotated GA4.', tags: ['Measurement', 'Recovery'] },
-      { id: 3002, date: getRelDate(5), client: 'Omega Retail', item: 'Launched Holiday Flash Sale', type: 'Win', impact: 'Generated $15k revenue in 48h with a ROAS of 6.5. Best performing weekend of the quarter.', tags: ['Launch', 'Reporting'] },
-      { id: 3003, date: getRelDate(10), client: 'Apex Fitness', item: 'Broad Match Test', type: 'Task', impact: 'Scaled Non-Brand spend by 20% while maintaining CPA targets. Identified 5 new high-intent search themes.', tags: ['Testing', 'Optimization'] },
-      { id: 3004, date: getRelDate(12), client: 'BrightPath Edu', item: 'Lead Quality Audit', type: 'Win', impact: 'Reduced junk leads by 40% by excluding "free" and "job" related queries. Saved ~$1.2k/mo.', tags: ['Optimization'] },
-      { id: 3005, date: getRelDate(15), client: 'Summit Financial', item: 'C-Suite Reporting Dashboard', type: 'Win', impact: 'Automated weekly performance reporting via Looker Studio, saving 2 hours of manual work per week.', tags: ['Automation', 'Reporting', 'Stakeholder'] },
-      { id: 3006, date: getRelDate(18), client: 'Urban Roots', item: 'Site Outage Response', type: 'Fire Drill', impact: 'Paused all social and search spend within 10 mins of downtime alert. Saved client approx $500 in wasted click spend.', tags: ['Recovery'] },
-      { id: 3007, date: getRelDate(22), client: 'TechFlow SaaS', item: 'Competitor Conquesting Launch', type: 'Task', impact: 'Achieved 15% impression share on top 3 competitor terms within first week.', tags: ['Launch'] },
-      { id: 3008, date: getRelDate(25), client: 'Internal', item: 'Q2 Planning Deck', type: 'Task', impact: 'Delivered strategy roadmap for all 6 active clients. Approved by VP.', tags: ['Reporting'] },
-      { id: 3009, date: getRelDate(30), client: 'Omega Retail', item: 'Feed Optimization', type: 'Win', impact: 'Fixed 150+ disapproved SKUs in Merchant Center. Restored visibility for top-selling category.', tags: ['Optimization', 'Recovery'] },
-      { id: 3010, date: getRelDate(92), client: 'TechFlow SaaS', item: 'Q3 Alpha Beta Launch', type: 'Win', impact: 'Early access feature adoption led to 10% lower CPCs vs benchmark.', tags: ['Launch', 'Testing'] },
-      { id: 3011, date: getRelDate(95), client: 'Apex Fitness', item: 'Video Ad Creative Refresh', type: 'Task', impact: 'Improved View rate by 5pp. Creative fatigue mitigated.', tags: ['Optimization'] },
-      { id: 3012, date: getRelDate(98), client: 'Summit Financial', item: 'Budget Pacing Error Fix', type: 'Fire Drill', impact: 'Caught overspend risk early. Adjusted daily caps to land exactly on monthly budget.', tags: ['Recovery'] },
-      { id: 3013, date: getRelDate(100), client: 'Urban Roots', item: 'Seasonal Promo Launch', type: 'Win', impact: 'Sold out of seasonal inventory in 3 weeks. ROAS 4.0.', tags: ['Launch'] },
-      { id: 3014, date: getRelDate(105), client: 'BrightPath Edu', item: 'Landing Page CRO Test', type: 'Win', impact: 'A/B test variant B showed 12% lift in conversion rate.', tags: ['Testing', 'Optimization'] },
-      { id: 3015, date: getRelDate(110), client: 'Omega Retail', item: 'GTM Migration', type: 'Task', impact: 'Seamlessly migrated all hardcoded pixels to GTM without data loss.', tags: ['Measurement', 'Automation'] },
-      { id: 3016, date: getRelDate(115), client: 'Internal', item: 'Quarterly Team Training', type: 'Task', impact: 'Led workshop on new PMax scripts.', tags: ['Stakeholder'] },
-    ];
-
-    setClients(demoClients);
-    setTasks(demoTasks);
-    setPendingTasks(demoPending);
-    setQbrLog(demoLog);
-    setClientFilter('All Clients');
-    setTagFilter('All Tags');
-    setIsClientMenuOpen(false);
-  };
-
-  const promptReset = () => {
-    setResetConfirmOpen(true);
-    setIsClientMenuOpen(false);
-  };
-
-  const executeReset = () => {
-      setClients(['Client A', 'Client B', 'Client C', 'Internal']);
-      setTasks([]);
-      setPendingTasks([]);
-      setQbrLog([]);
-      setClientFilter('All Clients');
-      setTagFilter('All Tags');
-      setSelectedQuarter(getCurrentQuarter());
-      setExpandedRows(new Set());
-      setResetConfirmOpen(false);
-      setResetSuccess(true);
-      setTimeout(() => setResetSuccess(false), 3000);
-  };
-
-  const validateAndParseCSV = () => {
-    if (!importText.trim()) return;
-
-    const lines = importText.trim().split('\n');
-    const parseLine = (line) => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-
-    if (lines.length < 2) {
-        setImportStats({ valid: 0, rejected: 0, total: 0, data: [], error: 'Not enough data rows.' });
-        return;
-    }
-
-    const headers = parseLine(lines[0]).map(h => h.toLowerCase());
-    const colMap = {
-        date: headers.findIndex(h => h.includes('date')),
-        client: headers.findIndex(h => h.includes('client')),
-        item: headers.findIndex(h => h.includes('item')),
-        type: headers.findIndex(h => h.includes('type')),
-        impact: headers.findIndex(h => h.includes('impact')),
-        tags: headers.findIndex(h => h.includes('tags')),
-    };
-
-    if (colMap.date === -1 || colMap.client === -1 || colMap.item === -1 || colMap.type === -1 || colMap.impact === -1) {
-        setImportStats({ valid: 0, rejected: 0, total: 0, data: [], error: 'Missing required columns: Date, Client, Item, Type, or Impact Note.' });
-        return;
-    }
-
-    const parsedData = [];
-    let validCount = 0;
-    let rejectedCount = 0;
-
-    for (let i = 1; i < lines.length; i++) {
-        const cols = parseLine(lines[i]);
-        if (cols.length < 4 || !cols[colMap.date] || isNaN(new Date(cols[colMap.date]).getTime())) {
-            rejectedCount++;
-            continue;
-        }
-
-        let rowTags = [];
-        if (colMap.tags > -1 && cols[colMap.tags]) {
-            rowTags = cols[colMap.tags].split(',')
-                .map(t => t.trim())
-                .map(t => STRATEGIC_TAGS.find(st => st.toLowerCase() === t.toLowerCase())) 
-                .filter(Boolean); 
-        }
-
-        const typeRaw = cols[colMap.type].toLowerCase();
-        const typeNormalized = typeRaw.includes('fire') ? 'Fire Drill' : 'Task'; 
-
-        parsedData.push({
-            id: Date.now() + i,
-            date: cols[colMap.date],
-            client: cols[colMap.client],
-            item: cols[colMap.item],
-            type: typeNormalized,
-            impact: cols[colMap.impact],
-            tags: rowTags
-        });
-        validCount++;
-    }
-
-    setImportStats({ valid: validCount, rejected: rejectedCount, total: lines.length - 1, data: parsedData, error: null });
-  };
-
-  const executeImport = () => {
-    if (!importStats || importStats.valid === 0) return;
-    
-    // Add new clients if any
-    const newClients = new Set(clients);
-    importStats.data.forEach(row => newClients.add(row.client));
-    setClients(Array.from(newClients));
-    
-    // Append to existing log instead of replacing
-    setQbrLog([...qbrLog, ...importStats.data]);
-    
-    // Reset Everything
-    setShowImportModal(false);
-    setImportText('');
-    setImportStats(null);
-    setImportConfirmationStep(false);
-    setIsClientMenuOpen(false);
-    setActiveTab('vault'); 
-  };
-
-  const addTask = (e) => {
-    e.preventDefault();
-    if (!newTaskText.trim()) return;
-    const task = {
-      id: Date.now(),
-      text: newTaskText,
-      client: newTaskClient || clients[0],
-      isFireDrill: isFireDrill,
-      date: new Date().toLocaleDateString()
-    };
-    setTasks([task, ...tasks]);
-    setNewTaskText('');
-    setIsFireDrill(false);
-  };
-
-  const initiateComplete = (task) => {
-    setCompletingTask({ ...task, source: 'active' });
-    setImpactNote('');
-    setCompletionTags([]);
-    
-    // Start Undo Timer
-    setShowUndoToast(true);
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    undoTimerRef.current = setTimeout(() => {
-      setShowUndoToast(false);
-    }, 10000);
-  };
-
-  const initiatePendingPromote = (task) => {
-    setCompletingTask({ ...task, source: 'pending' });
-    setImpactNote('');
-    setCompletionTags([]);
-    setShowUndoToast(false); 
-  };
-
-  const discardPendingTask = (task) => {
-    if (window.confirm("Permanently discard this task?")) {
-      setPendingTasks(pendingTasks.filter(t => t.id !== task.id));
-    }
-  };
-
-  const handleUndo = () => {
-    setCompletingTask(null); // Close Modal
-    setShowUndoToast(false); // Hide Toast
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-  };
-
-  const clearUndoState = () => {
-    setShowUndoToast(false);
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-  };
-
-  const toggleCompletionTag = (tag) => {
-    if (completionTags.includes(tag)) {
-      setCompletionTags(completionTags.filter(t => t !== tag));
-    } else {
-      if (completionTags.length < 2) {
-        setCompletionTags([...completionTags, tag]);
-      }
-    }
-  };
-
-  const toggleManualTag = (tag) => {
-    if (manualTags.includes(tag)) {
-      setManualTags(manualTags.filter(t => t !== tag));
-    } else {
-      if (manualTags.length < 2) {
-        setManualTags([...manualTags, tag]);
-      }
-    }
-  };
-
-  const toggleEditEntryTag = (tag) => {
-    if (editEntryTags.includes(tag)) {
-      setEditEntryTags(editEntryTags.filter(t => t !== tag));
-    } else {
-      if (editEntryTags.length < 2) {
-        setEditEntryTags([...editEntryTags, tag]);
-      }
-    }
-  };
-
-  const confirmQbrSave = () => {
-    if (!completingTask) return;
-    const logEntry = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString(),
-      client: completingTask.client,
-      item: completingTask.text,
-      type: completingTask.isFireDrill ? 'Fire Drill' : 'Task',
-      impact: impactNote || 'Task Completed',
-      tags: completionTags
-    };
-    
-    setQbrLog([logEntry, ...qbrLog]);
-    
-    // Remove from source
-    if (completingTask.source === 'active') {
-      setTasks(tasks.filter(t => t.id !== completingTask.id));
-    } else if (completingTask.source === 'pending') {
-      setPendingTasks(pendingTasks.filter(t => t.id !== completingTask.id));
-    }
-
-    setCompletingTask(null);
-    clearUndoState(); 
-  };
-
-  const skipQbrSave = () => {
-    if (!completingTask) return;
-    
-    if (completingTask.source === 'active') {
-      const taskToMove = { 
-        id: completingTask.id,
-        text: completingTask.text,
-        client: completingTask.client,
-        isFireDrill: completingTask.isFireDrill,
-        date: completingTask.date
-      };
-      setPendingTasks([taskToMove, ...pendingTasks]);
-      setTasks(tasks.filter(t => t.id !== completingTask.id));
-    } 
-    
-    setCompletingTask(null);
-    clearUndoState(); 
-  };
-
-  const addManualQbrEntry = (e) => {
-    e.preventDefault();
-    if (!manualQbrText.trim()) return;
-    const logEntry = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString(),
-      client: manualQbrClient || clients[0],
-      item: manualQbrText,
-      type: manualQbrType,
-      impact: manualQbrImpact || 'Manual Entry',
-      tags: manualTags
-    };
-    setQbrLog([logEntry, ...qbrLog]);
-    setManualQbrText('');
-    setManualQbrImpact('');
-    setManualTags([]);
-    setShowManualQbrForm(false);
-  };
-
-  const startEditingEntry = (entry) => {
-    setEditingEntry(entry);
-    setEditItemText(entry.item);
-    setEditImpactText(entry.impact || '');
-    setEditEntryType(entry.type);
-    setEditEntryTags(entry.tags || []);
-  };
-
-  const saveEditedEntry = () => {
-    if (!editingEntry) return;
-    const updatedEntry = {
-      ...editingEntry,
-      item: editItemText,
-      impact: editImpactText,
-      type: editEntryType,
-      tags: editEntryTags
-    };
-    setQbrLog(qbrLog.map(entry => entry.id === editingEntry.id ? updatedEntry : entry));
-    setEditingEntry(null);
-  };
-
-  // --- Task Editing Logic ---
-  const startEditingTask = (task) => {
-    setEditingTask(task);
-    setEditTaskTextState(task.text);
-    setEditTaskClientState(task.client);
-    setEditTaskFireDrillState(task.isFireDrill);
-  };
-
-  const saveEditedTask = () => {
-    if (!editingTask) return;
-    const updatedTask = {
-      ...editingTask,
-      text: editTaskTextState,
-      client: editTaskClientState,
-      isFireDrill: editTaskFireDrillState
-    };
-    setTasks(tasks.map(t => t.id === editingTask.id ? updatedTask : t));
-    setEditingTask(null);
-  };
-
-  const toggleRowExpansion = (id) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
-    setExpandedRows(newExpanded);
-  };
-
-  const handleExportQbr = () => {
-    if (filteredLog.length === 0) return;
-
-    // Helper to escape CSV fields
-    const escapeCsv = (str) => {
-        if (!str) return '';
-        const stringified = String(str);
-        if (stringified.includes(',') || stringified.includes('"') || stringified.includes('\n')) {
-            return `"${stringified.replace(/"/g, '""')}"`;
-        }
-        return stringified;
-    };
-
-    // Headers
-    const headers = ['Date', 'Client', 'Item', 'Type', 'Impact Note', 'Tags'];
-    let csvContent = headers.join(',') + '\n';
-
-    // Sort by Date Descending
-    const sortedLog = [...filteredLog].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    const rows = sortedLog.map(item => {
-        const tags = item.tags ? item.tags.join(', ') : '';
-        return [
-            escapeCsv(item.date),
-            escapeCsv(item.client),
-            escapeCsv(item.item),
-            escapeCsv(item.type),
-            escapeCsv(item.impact),
-            escapeCsv(tags)
-        ].join(',');
-    });
-
-    csvContent += rows.join('\n');
-
+const ACCOUNT_TYPES = ["Credit Card", "Cash", "Debit"];
+const ASSET_LABELS = ["Checking", "Savings", "High Yield Savings", "Brokerage", "Roth IRA", "401k", "Crypto", "Real Estate", "Vehicle", "Cash"];
+const LIABILITY_LABELS = ["Credit Card", "Mortgage", "Auto Loan", "Student Loan", "Personal Loan", "Other Debt"];
+const COLOR_PALETTE = ["#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6", "#ec4899", "#059669", "#047857", "#6366f1", "#14b8a6", "#f97316", "#64748b"];
+
+const safeNumber = (val) => {
+  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+  if (!val) return 0;
+  const clean = String(val).replace(/[^0-9.-]/g, "");
+  const num = Number(clean);
+  return Number.isFinite(num) ? num : 0;
+};
+
+const fmtUSD = (value, { cents = false } = {}) => {
+  const val = safeNumber(value);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 }).format(val);
+};
+
+const formatCurrency = (a) => fmtUSD(a, { cents: false });
+const formatCurrencyPrecise = (a) => fmtUSD(a, { cents: true });
+
+const safeDate = (d) => {
+  if (!d) return new Date().toISOString().split("T")[0];
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().split("T")[0];
+  return date.toISOString().split("T")[0];
+};
+
+const parseCSVLine = (text) => {
+  if (!text) return [];
+  const matches = text.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+  if (!matches) return text.split(",");
+  return matches.map((v) => v.trim().replace(/^"|"$/g, "").replace(/""/g, '"'));
+};
+
+const findCategoryId = (name, categories) => {
+  if (!name) return "misc";
+  const clean = String(name).trim().toLowerCase();
+  const exact = categories.find((c) => c.name.toLowerCase() === clean);
+  if (exact) return exact.id;
+  const includes = categories.find((c) => clean.includes(c.name.toLowerCase()));
+  if (includes) return includes.id;
+  const reverse = categories.find((c) => c.name.toLowerCase().includes(clean));
+  return reverse ? reverse.id : "misc";
+};
+
+const generateID = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+const chunk = (arr, size) => {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
+const copyToClipboard = (text, onSuccess) => {
+  try {
     const textArea = document.createElement("textarea");
-    textArea.value = csvContent;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-9999px';
-    textArea.style.top = '0';
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
-    
-    try {
-      if (document.execCommand('copy')) {
-        setCopyFeedback(`Copied CSV (${sortedLog.length} items)`);
-        setTimeout(() => setCopyFeedback(''), 2000);
-      }
-    } catch (err) {
-      console.error('Copy failed', err);
-    }
+    const successful = document.execCommand('copy');
     document.body.removeChild(textArea);
-  };
+    if (successful && onSuccess) onSuccess();
+  } catch (err) { console.error('Copy failed', err); }
+};
 
-  // --- Filtering ---
-  const filteredTasks = (clientFilter === 'All Clients' 
-    ? tasks 
-    : tasks.filter(t => t.client === clientFilter))
-    .filter(t => t.id !== completingTask?.id); 
+const extractJsonArray = (raw) => {
+  const s = String(raw || "").replace(/```json/g, "").replace(/```/g, "").trim();
+  const start = s.indexOf("[");
+  const end = s.lastIndexOf("]");
+  if (start !== -1 && end !== -1) return s.slice(start, end + 1);
+  if (s.startsWith("{") && s.endsWith("}")) return `[${s}]`;
+  return "[]";
+};
 
-  const filteredPendingTasks = clientFilter === 'All Clients'
-    ? pendingTasks
-    : pendingTasks.filter(t => t.client === clientFilter);
-
-  const filteredLog = qbrLog.filter(item => {
-    const matchClient = clientFilter === 'All Clients' || item.client === clientFilter;
-    const matchQuarter = selectedQuarter === 'All' || getQuarter(item.date) === selectedQuarter;
-    const matchTag = tagFilter === 'All Tags' || (item.tags && item.tags.includes(tagFilter));
-    return matchClient && matchQuarter && matchTag;
-  });
-
-  // --- Metrics ---
-  const totalEntries = filteredLog.length;
-  const fireDrillsCount = filteredLog.filter(i => i.type === 'Fire Drill').length;
-  const winsCount = totalEntries - fireDrillsCount;
-  const uniqueClients = new Set(filteredLog.map(i => i.client)).size;
-  const fireDrillPercentage = totalEntries > 0 ? Math.round((fireDrillsCount / totalEntries) * 100) : 0;
-
-  // --- QoQ Logic ---
-  const getPreviousQuarter = (q) => {
-    if (q === 'Q1') return 'Q4';
-    if (q === 'Q2') return 'Q1';
-    if (q === 'Q3') return 'Q2';
-    if (q === 'Q4') return 'Q3';
-    return null;
-  };
-
-  const prevQuarter = selectedQuarter !== 'All' ? getPreviousQuarter(selectedQuarter) : null;
-  const prevQuarterCount = prevQuarter ? qbrLog.filter(item => {
-    const matchClient = clientFilter === 'All Clients' || item.client === clientFilter;
-    const matchTag = tagFilter === 'All Tags' || (item.tags && item.tags.includes(tagFilter));
-    const matchQuarter = getQuarter(item.date) === prevQuarter;
-    return matchClient && matchTag && matchQuarter;
-  }).length : 0;
+// STORAGE ADAPTER LAYER
+const LocalDB = {
+  loadJSON: (key, fallback) => {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : fallback;
+    } catch {
+      return fallback;
+    }
+  },
+  saveJSON: (key, value) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) { console.error("Save failed", e); }
+  },
   
-  const qoqDelta = totalEntries - prevQuarterCount;
-  const qoqSign = qoqDelta > 0 ? '+' : '';
+  // Categories
+  getCategories: () => LocalDB.loadJSON(STORE_KEYS.CATS, DEFAULT_CATEGORIES),
+  saveCategories: (cats) => LocalDB.saveJSON(STORE_KEYS.CATS, cats),
+  
+  // Transactions (Sorted Date DESC)
+  getTransactions: () => {
+    const txs = LocalDB.loadJSON(STORE_KEYS.TXS, []);
+    return txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },
+  upsertTransactions: (newTxs) => {
+    const current = LocalDB.loadJSON(STORE_KEYS.TXS, []);
+    const inputArr = Array.isArray(newTxs) ? newTxs : [newTxs];
+    const map = new Map(current.map(t => [t.id, t]));
+    inputArr.forEach(t => map.set(t.id, t));
+    const merged = Array.from(map.values());
+    LocalDB.saveJSON(STORE_KEYS.TXS, merged);
+    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },
+  deleteTransactions: (ids) => {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    const current = LocalDB.loadJSON(STORE_KEYS.TXS, []);
+    const filtered = current.filter(t => !idArr.includes(t.id));
+    LocalDB.saveJSON(STORE_KEYS.TXS, filtered);
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },
+
+  // Accounts
+  getAccounts: () => LocalDB.loadJSON(STORE_KEYS.ACCTS, []),
+  upsertAccount: (acc) => {
+    const current = LocalDB.loadJSON(STORE_KEYS.ACCTS, []);
+    const idx = current.findIndex(a => a.id === acc.id);
+    if (idx > -1) current[idx] = acc;
+    else current.push(acc);
+    LocalDB.saveJSON(STORE_KEYS.ACCTS, current);
+    return current;
+  },
+  deleteAccount: (id) => {
+    const current = LocalDB.loadJSON(STORE_KEYS.ACCTS, []);
+    const filtered = current.filter(a => a.id !== id);
+    LocalDB.saveJSON(STORE_KEYS.ACCTS, filtered);
+    return filtered;
+  },
+
+  // Snapshots (Sorted Date DESC)
+  getSnapshots: () => {
+    const snaps = LocalDB.loadJSON(STORE_KEYS.SNAPS, []);
+    return snaps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },
+  upsertSnapshots: (newSnaps) => {
+    const current = LocalDB.loadJSON(STORE_KEYS.SNAPS, []);
+    const inputArr = Array.isArray(newSnaps) ? newSnaps : [newSnaps];
+    const map = new Map(current.map(s => [s.id, s]));
+    inputArr.forEach(s => map.set(s.id, s));
+    const merged = Array.from(map.values());
+    LocalDB.saveJSON(STORE_KEYS.SNAPS, merged);
+    return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },
+  deleteSnapshot: (id) => {
+    const current = LocalDB.loadJSON(STORE_KEYS.SNAPS, []);
+    const filtered = current.filter(s => s.id !== id);
+    LocalDB.saveJSON(STORE_KEYS.SNAPS, filtered);
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },
+  
+  // Wipe
+  wipeAll: () => {
+    localStorage.removeItem(STORE_KEYS.TXS);
+    localStorage.removeItem(STORE_KEYS.ACCTS);
+    localStorage.removeItem(STORE_KEYS.SNAPS);
+    // Optionally reset categories to default or clear them. Keeping categories usually preferred but strictly "wipe" implies default.
+    localStorage.removeItem(STORE_KEYS.CATS);
+    return {
+      c: DEFAULT_CATEGORIES,
+      t: [],
+      a: [],
+      s: []
+    }
+  }
+};
+
+/* =========================================================
+   3. UI COMPONENTS (Bottom-Up Definition)
+========================================================= */
+
+const ErrorBoundary = class extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 text-center h-screen flex flex-col justify-center items-center bg-slate-50 text-slate-800">
+          <Icons.AlertTriangle className="text-red-500 mb-4" size={48} />
+          <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
+          <p className="text-xs text-red-500 bg-red-50 p-2 rounded mb-4 max-w-xs break-words">{this.state.error?.message || "Unknown Error"}</p>
+          <button onClick={() => window.location.reload()} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg">Reload App</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+};
+
+const Toast = ({ message, type, onClose }) => {
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [message, onClose]);
+  if (!message) return null;
+  return (
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] animate-in slide-in-from-top-5 pointer-events-none">
+      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-white text-sm font-bold ${type === "error" ? "bg-red-600" : "bg-slate-900"}`}>
+        {type === "error" ? <Icons.AlertCircle size={16} /> : <Icons.Check size={16} />}
+        {message}
+      </div>
+    </div>
+  );
+};
+
+const DonutChart = ({ data, total }) => {
+  const safeTotal = total > 0 ? total : 1;
+  return (
+    <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
+      <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+        {data.map((item, i) => {
+          const val = safeNumber(item.value);
+          const percent = val / safeTotal;
+          const circumference = 2 * Math.PI * 40;
+          const strokeDasharray = `${percent * circumference} ${circumference}`;
+          const previousVal = data.slice(0, i).reduce((acc, curr) => acc + (safeNumber(curr.value)), 0);
+          const strokeDashoffset = -(previousVal / safeTotal) * circumference;
+          return (
+            <circle key={i} cx="50" cy="50" r="40" fill="transparent" stroke={item.color} strokeWidth="12"
+              strokeDasharray={strokeDasharray} strokeDashoffset={strokeDashoffset} className="transition-all duration-500 ease-out" />
+          );
+        })}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Spent</span>
+        <span className="text-slate-900 text-3xl font-bold tracking-tight">{formatCurrency(total)}</span>
+      </div>
+    </div>
+  );
+};
+
+const SimpleLineChart = ({ data, color = "#10b981" }) => {
+  if (!data || data.length < 2) return <div className="h-32 flex items-center justify-center text-slate-400 text-xs font-medium border-2 border-dashed border-slate-100 rounded-xl">Add more data to see trends</div>;
+  const height = 100, width = 300, padding = 5;
+  const values = data.map(d => safeNumber(d.value));
+  const minVal = Math.min(...values);
+  const maxVal = Math.max(...values);
+  const range = (maxVal - minVal) || 1;
+  const points = data.map((d, i) => {
+    const val = safeNumber(d.value);
+    const x = (i / (data.length - 1)) * (width - padding * 2) + padding;
+    const y = height - ((val - minVal) / range) * (height - padding * 2) - padding;
+    return `${x},${y}`;
+  }).join(" ");
+  const lastVal = safeNumber(data[data.length - 1].value);
+  const lastX = (width - padding * 2) + padding;
+  const lastY = height - ((lastVal - minVal) / range) * (height - padding * 2) - padding;
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-32 overflow-visible">
+      <polyline fill="none" stroke={color} strokeWidth="3" points={points} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lastX} cy={lastY} r="4" fill={color} />
+    </svg>
+  );
+};
+
+const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
+  <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-colors ${isActive ? "text-slate-900" : "text-slate-400 hover:text-slate-500"}`}>
+    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+    <span className="text-[10px] font-bold">{label}</span>
+  </button>
+);
+
+/* =========================================================
+   4. MODALS (Defined BEFORE Views)
+========================================================= */
+
+const CategoryModal = ({ cat, onClose, onSave, onDelete }) => {
+  const [name, setName] = useState(cat?.name || "");
+  const [budget, setBudget] = useState(cat?.budget ?? "");
+  const [color, setColor] = useState(cat?.color || COLOR_PALETTE[0]);
+  const handleSubmit = (e) => { e.preventDefault(); onSave({ id: cat?.id || generateID(), name, budget: safeNumber(budget), color }); onClose(); };
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 relative">
+        <h3 className="font-bold text-lg text-slate-800 mb-6">{cat ? "Edit" : "New"} Category</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Category Name" className="w-full border border-slate-200 p-3 rounded-xl font-medium text-slate-800 focus:outline-none focus:border-slate-500" required />
+          <input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="Budget Amount" className="w-full border border-slate-200 p-3 rounded-xl font-medium text-slate-800 focus:outline-none focus:border-slate-500" />
+          <div className="flex flex-wrap gap-3">
+            {COLOR_PALETTE.map((c) => (<button key={c} type="button" onClick={() => setColor(c)} style={{ backgroundColor: c }} className={`w-8 h-8 rounded-full shadow-sm transition-transform ${color === c ? "ring-2 ring-offset-2 ring-slate-800 scale-110" : ""}`} />))}
+          </div>
+          <div className="flex gap-3 pt-4">
+            {cat && <button type="button" onClick={() => { onDelete(cat.id); onClose(); }} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100">Delete</button>}
+            <button type="submit" className="flex-[2] py-3 bg-slate-900 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform">Save Category</button>
+          </div>
+        </form>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-400 hover:text-slate-600"><Icons.X size={16} /></button>
+      </div>
+    </div>
+  );
+};
+
+const ImportModal = ({ onClose, onImport, onShowToast }) => {
+  const [txt, setTxt] = useState("");
+  const [preview, setPreview] = useState([]);
+  const handleParse = () => {
+    try {
+      const rows = txt.split(/\r?\n/).filter((r) => r.trim() !== "");
+      const headers = parseCSVLine(rows[0]).map((h) => h.toLowerCase());
+      const dateIdx = headers.findIndex((h) => h.includes("date")), catIdx = headers.findIndex((h) => h.includes("category")), amtIdx = headers.findIndex((h) => h.includes("amount"));
+      if (dateIdx === -1 || amtIdx === -1) return onShowToast("CSV must include Date and Amount columns", "error");
+      const data = [];
+      for (let i = 1; i < rows.length; i++) {
+        const cols = parseCSVLine(rows[i]);
+        if (cols.length < 2) continue;
+        const rawAmt = Number(String(cols[amtIdx] || "").replace(/[^0-9.-]+/g, ""));
+        if (!cols[dateIdx] || Number.isNaN(rawAmt)) continue;
+        data.push({ date: safeDate(cols[dateIdx]), amount: rawAmt, categoryName: catIdx !== -1 ? cols[catIdx] : "Misc", account: "Import", note: "" });
+      }
+      setPreview(data);
+    } catch { onShowToast("Error parsing CSV", "error"); }
+  };
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 h-[80vh] flex flex-col">
+        <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg text-slate-800">Import CSV</h3><button onClick={onClose}><Icons.X className="text-slate-400" /></button></div>
+        {preview.length === 0 ? <textarea value={txt} onChange={(e) => setTxt(e.target.value)} className="w-full flex-1 border border-slate-200 p-4 rounded-xl text-xs mb-4 focus:outline-none focus:border-slate-500 resize-none font-mono" placeholder={"Paste your CSV here...\nDate,Category,Amount,Account,Note"} /> : 
+        <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl mb-4 bg-slate-50 p-2"><table className="w-full text-xs text-left"><thead className="text-slate-400 font-bold uppercase border-b border-slate-200"><tr><th className="p-2">Date</th><th className="p-2">Cat</th><th className="p-2">Amt</th></tr></thead><tbody>{preview.map((p, i) => (<tr key={i} className="border-b border-slate-100 last:border-0"><td className="p-2 font-medium">{p.date.slice(5)}</td><td className="p-2 text-slate-500">{p.categoryName}</td><td className="p-2 font-mono">{p.amount}</td></tr>))}</tbody></table></div>}
+        <div className="flex gap-3"><button onClick={onClose} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>{preview.length === 0 ? <button onClick={handleParse} className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform">Preview Data</button> : <button onClick={() => { onImport(preview); onClose(); }} className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform">Import {preview.length} Items</button>}</div>
+      </div>
+    </div>
+  );
+};
+
+const ProfileModal = ({ isOpen, onClose, transactions = [], categories = [], onWipeData }) => {
+  if (!isOpen) return null;
+  let spent = 0, invested = 0, saved = 0;
+  transactions.forEach((t) => {
+    const cat = categories.find((c) => c.id === t.categoryId);
+    const text = `${cat?.name || ""} ${t.note || ""}`.toLowerCase(), amt = safeNumber(t.amount);
+
+    if (text.includes("invest") || text.includes("401k") || text.includes("ira") || text.includes("brokerage")) {
+      invested += amt;
+    } else if (text.includes("save") || text.includes("saving") || text.includes("fund") || text.includes("deposit") || text.includes("stash")) {
+      saved += amt;
+    } else {
+      spent += amt;
+    }
+  });
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-400"><Icons.X size={18} /></button>
+        <div className="text-center mb-6"><div className="w-16 h-16 bg-slate-900 text-white rounded-full flex items-center justify-center mx-auto mb-3"><Icons.User size={32} /></div><h3 className="font-bold text-xl">Stats</h3></div>
+        <div className="space-y-3">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100"><p className="text-[10px] uppercase font-bold text-slate-400">Net Spent</p><p className="text-2xl font-bold">{formatCurrency(spent)}</p></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl"><p className="text-[10px] uppercase font-bold text-emerald-600 mb-1">Invested</p><p className="text-xl font-bold text-emerald-700">{formatCurrency(invested)}</p></div>
+            <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl"><p className="text-[10px] uppercase font-bold text-blue-600 mb-1">Saved</p><p className="text-xl font-bold text-blue-700">{formatCurrency(saved)}</p></div>
+          </div>
+          <button onClick={() => { onWipeData(); onClose(); }} className="w-full py-3 mt-2 text-red-500 font-bold text-xs hover:bg-red-50 rounded-xl">Reset Application</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AccountModal = ({ account, onClose, onSave, onDelete }) => {
+  const [name, setName] = useState(account?.name || ""), [label, setLabel] = useState(account?.label || "");
+  const [type, setType] = useState(account?.type || "asset");
+  
+  useEffect(() => {
+    if (account) {
+      setName(account.name);
+      setLabel(account.label);
+      setType(account.type || (ASSET_LABELS.includes(account.label) ? "asset" : "liability"));
+    } else {
+      setName("");
+      setLabel("");
+      setType("asset");
+    }
+  }, [account]);
+
+  const handleSubmit = (e) => { e.preventDefault(); onSave({ id: account?.id, name, label: label || (type === 'asset' ? 'Other Asset' : 'Other Liability'), type, isActive: true, isNew: !account }); onClose(); };
+  const chips = type === 'asset' ? ASSET_LABELS : LIABILITY_LABELS;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
-      
-      {/* --- HEADER --- */}
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="relative">
-            <button 
-              onClick={() => setIsClientMenuOpen(!isClientMenuOpen)}
-              className="flex items-center space-x-3 group outline-none"
-            >
-              <div className="bg-indigo-600 p-2 rounded-lg group-hover:bg-indigo-700 transition-colors">
-                <Layout className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-left">
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center">
-                  Manager's Log
-                  <MoreHorizontal className="w-4 h-4 ml-2 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </h1>
-              </div>
-            </button>
-            {isClientMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-30 cursor-default" onClick={() => setIsClientMenuOpen(false)}/>
-                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-slate-200 z-40 overflow-hidden ring-1 ring-black/5">
-                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Manage Clients</h3>
-                  </div>
-                  <ul className="max-h-60 overflow-y-auto">
-                    {clients.map(client => (
-                      <li key={client} className="px-4 py-2 flex items-center justify-between hover:bg-slate-50 border-b border-slate-50 last:border-0 group">
-                        {editingClient === client ? (
-                          <div className="flex items-center w-full space-x-2">
-                            <input 
-                              type="text" value={editClientText} onChange={(e) => setEditClientText(e.target.value)}
-                              className="flex-1 h-7 text-sm px-2 border border-indigo-300 rounded focus:ring-1 focus:ring-indigo-500 outline-none" autoFocus
-                            />
-                            <button onClick={saveClientEdit} className="text-emerald-600 hover:text-emerald-700"><Check className="w-4 h-4" /></button>
-                            <button onClick={() => setEditingClient(null)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-                          </div>
-                        ) : (
-                          <>
-                            <span className="text-sm text-slate-700 font-medium truncate">{client}</span>
-                            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => startEditingClient(client)} className="p-1 text-slate-400 hover:text-indigo-600 rounded"><Edit2 className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => promptDeleteClient(client)} className="p-1 text-slate-400 hover:text-red-600 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
-                            </div>
-                          </>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  <form onSubmit={handleAddClient} className="p-3 bg-slate-50 border-t border-slate-200">
-                    <div className="flex items-center space-x-2">
-                      <input type="text" placeholder="Add new client..." value={newClientInput} onChange={(e) => setNewClientInput(e.target.value)}
-                        className="flex-1 h-8 text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <button type="submit" className="h-8 w-8 flex items-center justify-center bg-indigo-600 text-white rounded hover:bg-indigo-700"><Plus className="w-4 h-4" /></button>
-                    </div>
-                  </form>
-                  <div className="p-3 bg-slate-50 border-t border-slate-200 space-y-2">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Utilities</h3>
-                    <button onClick={loadDemoData} className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded text-xs font-semibold hover:bg-slate-100 hover:text-slate-800 transition-colors shadow-sm">
-                      <RefreshCw className="w-3.5 h-3.5" /><span>Load Robust Demo</span>
-                    </button>
-                    <button onClick={() => { setShowImportModal(true); setIsClientMenuOpen(false); }} className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded text-xs font-semibold hover:bg-slate-100 hover:text-slate-800 transition-colors shadow-sm">
-                      <FileDown className="w-3.5 h-3.5" /><span>Import CSV</span>
-                    </button>
-                    <button onClick={promptReset} className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-white border border-red-200 text-red-600 rounded text-xs font-semibold hover:bg-red-50 hover:text-red-700 transition-colors shadow-sm">
-                      <Trash2 className="w-3.5 h-3.5" /><span>Reset Application</span>
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+    <div className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl p-6 relative">
+        <h3 className="font-bold text-lg mb-4">{account ? "Edit" : "New"} Account</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Account Name (e.g. Chase)" className="w-full border p-3 rounded-lg" required autoFocus />
+          <div>
+             <div className="flex p-1 bg-slate-100 rounded-lg mb-3">
+               <button type="button" onClick={() => { setType('asset'); setLabel(''); }} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${type === 'asset' ? 'bg-white shadow text-slate-900' : 'text-slate-400'}`}>Asset</button>
+               <button type="button" onClick={() => { setType('liability'); setLabel(''); }} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${type === 'liability' ? 'bg-white shadow text-slate-900' : 'text-slate-400'}`}>Liability</button>
+             </div>
+             <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Account Type</label>
+             <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={type === 'asset' ? "e.g. Gold, Cash..." : "e.g. Loan..."} className="w-full border p-2 rounded-lg text-sm mb-3" />
+             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">{chips.map(l => (<button key={l} type="button" onClick={() => setLabel(l)} className={`px-2 py-1 text-[10px] border rounded-md transition-colors ${label === l ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>{l}</button>))}</div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-slate-100 rounded-md px-3 py-1.5 border border-slate-200">
-              <Filter className="w-4 h-4 text-slate-500" />
-              <select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} className="bg-transparent border-none text-sm font-medium text-slate-700 focus:ring-0 cursor-pointer outline-none w-32">
-                <option>All Clients</option>
-                {clients.map(c => <option key={c}>{c}</option>)}
-              </select>
+          <div className="flex gap-2 pt-2">
+            {account && <button type="button" onClick={() => { if(confirm("Delete this account?")) { onDelete(account.id); onClose(); } }} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100">Delete</button>}
+            <button type="submit" className="flex-[2] py-3 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800">Save Account</button>
+          </div>
+        </form>
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X size={20} /></button>
+      </div>
+    </div>
+  );
+};
+
+const SnapshotModal = ({ accounts, onClose, onSave, onShowToast }) => {
+  const [balances, setBalances] = useState({});
+  return (
+    <div className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl p-6 relative">
+        <h3 className="font-bold text-lg mb-4">Log Balances</h3>
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto">{accounts.filter(a=>a.isActive).map(acc=>(<div key={acc.id} className="flex justify-between items-center"><span className="text-sm font-bold">{acc.name}</span><input type="number" placeholder="0.00" className="border p-2 rounded-lg text-right w-32" onChange={e=>setBalances({...balances,[acc.id]:e.target.value})} /></div>))}</div>
+        <button onClick={() => { const s = Object.entries(balances).filter(([,v])=>v!=="").map(([id,v])=>({ id: generateID(), accountId: id, date: new Date().toISOString().split("T")[0], balance: safeNumber(v), note: "Manual" })); if(s.length){ onSave(s); onClose(); } else onShowToast("Enter value", "error"); }} className="w-full mt-4 py-3 bg-slate-900 text-white font-bold rounded-lg">Save</button>
+        <button onClick={onClose} className="absolute top-4 right-4"><Icons.X className="text-slate-400" /></button>
+      </div>
+    </div>
+  );
+};
+
+const EditSnapshotModal = ({ snapshot, onClose, onUpdate, onDelete }) => {
+    const [date, setDate] = useState(snapshot?.date || "");
+    const [balance, setBalance] = useState(snapshot?.balance || "");
+    const handleSubmit = (e) => { e.preventDefault(); onUpdate({ ...snapshot, date: safeDate(date), balance: safeNumber(balance) }); onClose(); };
+    return (
+        <div className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-xs rounded-xl shadow-2xl p-6 relative">
+                <h3 className="font-bold text-lg mb-4">Edit Snapshot</h3>
+                <p className="text-xs text-slate-400 mb-4">{snapshot?.accountName || "Unknown Account"}</p>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div><label className="text-xs font-bold text-slate-500 uppercase">Date</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border p-2 rounded-lg mt-1" required /></div>
+                    <div><label className="text-xs font-bold text-slate-500 uppercase">Balance</label><input type="number" step="0.01" value={balance} onChange={(e) => setBalance(e.target.value)} className="w-full border p-2 rounded-lg mt-1" required /></div>
+                    <div className="flex gap-2 pt-2">
+                        <button type="button" onClick={() => { if(confirm("Delete snapshot?")) { onDelete(snapshot.id); onClose(); } }} className="flex-1 py-2 bg-red-100 text-red-600 font-bold rounded-lg text-xs">Delete</button>
+                        <button type="submit" className="flex-[2] py-2 bg-slate-900 text-white font-bold rounded-lg text-xs">Save</button>
+                    </div>
+                </form>
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X size={18} /></button>
             </div>
-          </div>
         </div>
-        <div className="max-w-5xl mx-auto px-4 flex space-x-1 mt-1">
-          <button onClick={() => setActiveTab('workstream')} className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'workstream' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
-            <div className="flex items-center space-x-2"><Briefcase className="w-4 h-4" /><span>Daily Workstream</span><span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-xs">{tasks.length}</span></div>
-          </button>
-          <button onClick={() => setActiveTab('vault')} className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'vault' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
-            <div className="flex items-center space-x-2"><Trophy className="w-4 h-4" /><span>QBR Vault</span><span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-xs">{qbrLog.length}</span></div>
-          </button>
-        </div>
-      </header>
+    );
+};
 
-      {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6">
-        {activeTab === 'workstream' && (
-          <div className="space-y-6">
-            <form onSubmit={addTask} className="bg-white p-3 rounded-lg shadow-sm border border-slate-200 flex flex-col md:flex-row gap-3 items-center">
-              <select value={newTaskClient} onChange={(e) => setNewTaskClient(e.target.value)} className={`w-full md:w-40 text-sm border border-slate-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-colors ${getClientColor(newTaskClient)}`}>
-                {clients.map(c => <option key={c}>{c}</option>)}
-              </select>
-              <div className="flex-1 w-full relative">
-                <input type="text" placeholder="What needs to be done?" value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} className="w-full text-sm border-slate-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500 pl-3 pr-24" />
-                <button type="button" onClick={() => setIsFireDrill(!isFireDrill)} className={`absolute right-1.5 top-1.5 bottom-1.5 px-2.5 rounded text-xs font-bold flex items-center space-x-1 transition-all ${isFireDrill ? 'bg-red-500 text-white shadow-sm' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
-                  <Flame className="w-3 h-3" /><span>Fire Drill</span>
+const TrendDetailModal = ({ data, accounts, snapshots, onClose }) => {
+    const [range, setRange] = useState("1Y"); 
+    const [selectedAccount, setSelectedAccount] = useState("ALL");
+
+    // Recalculate trend data
+    const filteredData = useMemo(() => {
+        // 1. Get Dates
+        const dates = [...new Set(snapshots.map((s) => s.date))].sort();
+        
+        // 2. Filter Dates by Range
+        const now = new Date();
+        const cutoff = new Date();
+        if (range === "3M") cutoff.setMonth(now.getMonth() - 3);
+        if (range === "6M") cutoff.setMonth(now.getMonth() - 6);
+        if (range === "1Y") cutoff.setFullYear(now.getFullYear() - 1);
+        
+        const activeDates = range === "ALL" ? dates : dates.filter(d => new Date(d) >= cutoff);
+        if (activeDates.length === 0) return [];
+
+        // 3. Build Points
+        return activeDates.map((date) => {
+            let val = 0;
+            accounts.forEach((acc) => {
+                if (selectedAccount !== "ALL" && acc.id !== selectedAccount) return;
+                const snap = snapshots
+                  .filter((s) => s.accountId === acc.id && s.date <= date)
+                  .sort((x, y) => new Date(y.date).getTime() - new Date(x.date).getTime())[0];
+                const bal = snap ? safeNumber(snap.balance) : 0;
+                if (selectedAccount !== "ALL") {
+                    val += bal;
+                } else {
+                    if (acc.type === "asset") val += bal;
+                    else val -= bal;
+                }
+            });
+            return { date, value: val };
+        });
+    }, [snapshots, accounts, range, selectedAccount]);
+
+    const startVal = filteredData.length > 0 ? safeNumber(filteredData[0].value) : 0;
+    const endVal = filteredData.length > 0 ? safeNumber(filteredData[filteredData.length - 1].value) : 0;
+    const change = endVal - startVal;
+    const pctChange = startVal !== 0 ? (change / Math.abs(startVal)) * 100 : 0;
+    const values = filteredData.map(d => safeNumber(d.value));
+    const high = values.length ? Math.max(...values) : 0;
+    const low = values.length ? Math.min(...values) : 0;
+
+    return (
+        <div className="fixed inset-0 z-[90] bg-white animate-in slide-in-from-bottom-10 duration-200 flex flex-col">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white">
+                <h2 className="text-xl font-bold text-slate-900">Net Worth Trend</h2>
+                <button onClick={onClose} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200">
+                    <Icons.X size={20} />
                 </button>
-              </div>
-              <button type="submit" className="w-full md:w-auto px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 transition-colors shadow-sm">Add Task</button>
-            </form>
-
-            {/* Active Tasks List */}
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Tasks</h3>
-                <span className="text-xs text-slate-400">{filteredTasks.length} items</span>
-              </div>
-              
-              {filteredTasks.length === 0 ? (
-                <div className="p-8 text-center text-slate-400">
-                  <Archive className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No active tasks found for this view.</p>
-                </div>
-              ) : (
-                <ul className="divide-y divide-slate-100">
-                  {filteredTasks.map(task => (
-                    <li key={task.id} className="group hover:bg-slate-50 transition-colors">
-                      <div className="flex items-center p-3">
-                        <button onClick={() => initiateComplete(task)} className="flex-shrink-0 text-slate-300 hover:text-emerald-500 transition-colors mr-4" title="Complete Task">
-                          <CheckCircle2 className="w-6 h-6" />
-                        </button>
-                        <div className="flex-1 min-w-0 flex items-center relative pr-8">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center mb-1">
-                              {task.isFireDrill && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 mr-2 border border-red-200"><Flame className="w-3 h-3 mr-0.5" /> FIRE DRILL</span>
-                              )}
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${getClientColor(task.client)}`}>{task.client}</span>
-                              <span className="text-[10px] text-slate-400 ml-auto">{task.date}</span>
-                            </div>
-                            <p className="text-sm text-slate-700 font-medium truncate">{task.text}</p>
-                          </div>
-                          
-                          {/* Edit Active Task Button */}
-                          <button 
-                            onClick={() => startEditingTask(task)}
-                            className="absolute right-0 text-slate-300 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                            title="Edit Task"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex flex-col gap-3 mb-6">
+                     <select 
+                       className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                       value={selectedAccount}
+                       onChange={(e) => setSelectedAccount(e.target.value)}
+                     >
+                        <option value="ALL">All Accounts (Net Worth)</option>
+                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                     </select>
 
-            {/* Completed (Pending Evaluation) Section */}
-            {filteredPendingTasks.length > 0 && (
-              <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                <button 
-                  onClick={() => setIsPendingCollapsed(!isPendingCollapsed)}
-                  className="w-full px-4 py-3 flex justify-between items-center hover:bg-slate-100 transition-colors"
-                >
-                  <div className="flex items-center space-x-2">
-                     {isPendingCollapsed ? <ChevronRight className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Completed (Pending Evaluation)</h3>
-                     <span className="text-xs font-semibold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">{filteredPendingTasks.length}</span>
-                  </div>
-                </button>
-                
-                {!isPendingCollapsed && (
-                  <ul className="divide-y divide-slate-100 border-t border-slate-200">
-                    {filteredPendingTasks.map(task => (
-                       <li key={task.id} className="group flex items-center p-3 hover:bg-white transition-colors">
-                          <div className="flex-1 min-w-0 opacity-75 group-hover:opacity-100 transition-opacity">
-                             <div className="flex items-center mb-1">
-                                {task.isFireDrill && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 mr-2 border border-red-200 scale-90 origin-left"><Flame className="w-3 h-3 mr-0.5" /> FIRE DRILL</span>
-                                )}
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border scale-90 origin-left ${getClientColor(task.client)}`}>{task.client}</span>
-                             </div>
-                             <p className="text-sm text-slate-600 truncate">{task.text}</p>
-                          </div>
-                          <div className="flex items-center space-x-2 ml-4">
-                            <button 
-                              onClick={() => initiatePendingPromote(task)}
-                              className="text-xs font-medium text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded hover:bg-indigo-50 border border-transparent hover:border-indigo-100 flex items-center"
+                    <div className="flex p-1 bg-slate-100 rounded-xl">
+                        {["3M", "6M", "1Y", "ALL"].map(r => (
+                            <button
+                                key={r}
+                                onClick={() => setRange(r)}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${range === r ? "bg-white shadow text-slate-900" : "text-slate-400"}`}
                             >
-                              <ArrowUpRight className="w-3 h-3 mr-1" />
-                              Add to QBR
+                                {r}
                             </button>
-                            <button 
-                              onClick={() => discardPendingTask(task)}
-                              className="text-xs font-medium text-slate-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors"
-                            >
-                              Discard
-                            </button>
-                          </div>
-                       </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'vault' && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-              {!showManualQbrForm ? (
-                <div onClick={() => setShowManualQbrForm(true)} className="p-3 bg-slate-50 hover:bg-slate-100 cursor-pointer text-center text-sm text-indigo-600 font-medium flex items-center justify-center space-x-2 transition-colors">
-                  <Plus className="w-4 h-4" /><span>Log Manual Win / Event</span>
-                </div>
-              ) : (
-                <div className="p-4 bg-slate-50 border-b border-indigo-100">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-sm font-bold text-slate-700">Manual Entry</h3>
-                    <button onClick={() => setShowManualQbrForm(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-                  </div>
-                  <form onSubmit={addManualQbrEntry} className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div className="col-span-1">
-                      <label className="block text-xs font-medium text-slate-500 mb-1">Client</label>
-                      <select value={manualQbrClient} onChange={(e) => setManualQbrClient(e.target.value)} className={`w-full text-sm border-slate-300 rounded-md font-medium ${getClientColor(manualQbrClient)}`}>
-                        {clients.map(c => <option key={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div className="col-span-1">
-                       <label className="block text-xs font-medium text-slate-500 mb-1">Type</label>
-                       <select value={manualQbrType} onChange={(e) => setManualQbrType(e.target.value)} className="w-full text-sm border-slate-300 rounded-md">
-                        <option>Task</option><option>Fire Drill</option><option>Win</option><option>Strategic Update</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                       <label className="block text-xs font-medium text-slate-500 mb-1">Item Description</label>
-                       <input type="text" value={manualQbrText} onChange={(e) => setManualQbrText(e.target.value)} className="w-full text-sm border-slate-300 rounded-md" placeholder="What happened?" />
-                    </div>
-                    
-                    {/* Manual Tags */}
-                    <div className="col-span-4">
-                      <label className="block text-xs font-medium text-slate-500 mb-1">Strategic Tags <span className="text-slate-300 font-normal">(Max 2)</span></label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {STRATEGIC_TAGS.map(tag => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => toggleManualTag(tag)}
-                            className={`text-[10px] px-2 py-1 rounded border transition-colors ${
-                              manualTags.includes(tag) 
-                                ? 'bg-indigo-100 text-indigo-700 border-indigo-200 font-bold' 
-                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                            }`}
-                          >
-                            {tag}
-                          </button>
                         ))}
-                      </div>
                     </div>
-
-                    <div className="col-span-3">
-                       <label className="block text-xs font-medium text-slate-500 mb-1">Impact / Result</label>
-                       <input type="text" value={manualQbrImpact} onChange={(e) => setManualQbrImpact(e.target.value)} className="w-full text-sm border-slate-300 rounded-md" placeholder="e.g. Saved $500, Improved CPA by 10%..." />
-                    </div>
-                    <div className="col-span-1 flex items-end">
-                      <button type="submit" className="w-full py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">Add to Log</button>
-                    </div>
-                  </form>
                 </div>
-              )}
+
+                <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6 shadow-lg">
+                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">{range === 'ALL' ? 'Lifetime' : range} Change</p>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold">{formatCurrency(change)}</span>
+                        <span className={`text-sm font-bold ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {change >= 0 ? '+' : ''}{pctChange.toFixed(1)}%
+                        </span>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-slate-100 p-4 mb-6 shadow-sm">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase mb-4">Chart View</h3>
+                    <SimpleLineChart data={filteredData} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <p className="text-[10px] uppercase font-bold text-slate-400">Period High</p>
+                        <p className="text-lg font-bold text-slate-800">{formatCurrency(high)}</p>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <p className="text-[10px] uppercase font-bold text-slate-400">Period Low</p>
+                        <p className="text-lg font-bold text-slate-800">{formatCurrency(low)}</p>
+                    </div>
+                </div>
+
+                <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">History</h3>
+                <div className="space-y-0 border-t border-slate-100">
+                    {[...filteredData].reverse().map((d, i) => (
+                        <div key={i} className="flex justify-between items-center py-3 border-b border-slate-50">
+                            <span className="text-sm text-slate-600 font-medium">{d.date}</span>
+                            <span className="text-sm font-bold text-slate-900">{formatCurrency(d.value)}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
+        </div>
+    );
+};
 
-            {/* QBR Table & Controls (Unified Card) */}
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col">
-               <div className="px-4 py-3 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Quarterly Event Log</h3>
-                  <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-md">
-                     {['All', 'Q1', 'Q2', 'Q3', 'Q4'].map(q => (
-                        <button key={q} onClick={() => setSelectedQuarter(q)} className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${selectedQuarter === q ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{q}</button>
-                     ))}
-                  </div>
-                  {/* Tag Filter */}
-                  <div className="flex items-center space-x-2 bg-slate-100 rounded-md px-2 py-1 border border-slate-200">
-                    <Filter className="w-3 h-3 text-slate-400" />
-                    <select 
-                      value={tagFilter} 
-                      onChange={(e) => setTagFilter(e.target.value)}
-                      className="bg-transparent border-none text-[10px] font-medium text-slate-600 focus:ring-0 cursor-pointer outline-none w-24 p-0"
-                    >
-                      <option>All Tags</option>
-                      {STRATEGIC_TAGS.map(t => <option key={t}>{t}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <button onClick={handleExportQbr} disabled={filteredLog.length === 0} className={`text-xs font-medium flex items-center transition-colors ${copyFeedback ? 'text-emerald-600' : filteredLog.length === 0 ? 'text-slate-300 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-800'}`}>
-                  {copyFeedback ? <><Check className="w-3 h-3 mr-1" />{copyFeedback}</> : <><Copy className="w-3 h-3 mr-1" />Copy CSV</>}
-                </button>
-              </div>
+const TransactionModal = ({ categories, onClose, onSave, isOpen, initialData, onShowToast }) => {
+  const [mode, setMode] = useState("manual");
+  const [form, setForm] = useState({ amount: "", date: new Date().toISOString().split("T")[0], categoryId: "", note: "", account: "Credit Card" });
+  
+  // AI is disabled in local version, but keeping state structure
+  const [magic, setMagic] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [magicPreview, setMagicPreview] = useState(null);
 
-              {/* Summary Metrics Row */}
-              <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center gap-y-2">
-                <div className="flex items-center space-x-4 mr-auto">
-                  <div className="flex items-center space-x-2"><span className="text-xs font-medium text-slate-500">Total Wins:</span><span className="text-sm font-bold text-emerald-700">{winsCount}</span></div>
-                  <div className="flex items-center space-x-2"><span className="text-xs font-medium text-slate-500">Fire Drills:</span><span className="text-sm font-bold text-red-600">{fireDrillsCount}</span></div>
-                  <div className="flex items-center space-x-2"><span className="text-xs font-medium text-slate-500">Clients:</span><span className="text-sm font-bold text-slate-700">{uniqueClients}</span></div>
-                </div>
-                
-                {totalEntries > 0 && (
-                   <div className="flex items-center space-x-2 w-full md:w-auto md:pl-6 md:border-l md:border-slate-200 md:ml-0">
-                     <span className="text-xs font-medium text-slate-500">Fire Drills:</span>
-                     <span className="text-sm font-bold text-slate-700">{fireDrillPercentage}%</span>
-                     <span className="text-xs text-slate-400">of logged wins this quarter</span>
-                     {selectedQuarter !== 'All' && (totalEntries > 0 || prevQuarterCount > 0) && (
-                       <div className="flex items-center space-x-2 pl-4 border-l border-slate-200 ml-4">
-                         <span className="text-xs font-medium text-slate-500">QoQ:</span>
-                         <span className={`text-sm font-bold ${qoqDelta >= 0 ? 'text-emerald-700' : 'text-slate-700'}`}>{qoqSign}{qoqDelta}</span>
-                         <span className="text-xs text-slate-400">vs last qtr</span>
-                       </div>
-                     )}
-                   </div>
-                )}
-              </div>
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialData) setForm(initialData);
+    else { setForm({ amount: "", date: new Date().toISOString().split("T")[0], categoryId: categories[0]?.id || "", note: "", account: "Credit Card" }); setMagic(""); setMagicPreview(null); setMode("manual"); }
+  }, [isOpen, initialData, categories]);
 
-              {/* Table Section (Overflow handled here) */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
-                    <tr>
-                      <th className="px-4 py-3 w-24">Date</th>
-                      <th className="px-4 py-3 w-32">Client</th>
-                      <th className="px-4 py-3">Event / Task</th>
-                      <th className="px-4 py-3 w-32">Type</th>
-                      <th className="px-4 py-3 w-40">Tags</th>
-                      <th className="px-4 py-3 w-1/3">Impact Note</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredLog.length === 0 ? (
-                       <tr><td colSpan="6" className="px-4 py-8 text-center text-slate-400">No events logged for {selectedQuarter === 'All' ? 'this period' : selectedQuarter}.</td></tr>
-                    ) : (
-                      filteredLog.map(item => (
-                        <tr key={item.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 text-slate-500 font-mono text-xs align-top">{item.date}</td>
-                          <td className="px-4 py-3 align-top"><span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium border ${getClientColor(item.client)}`}>{item.client}</span></td>
-                          
-                          {/* Event / Task with Edit */}
-                          <td className="px-4 py-3 font-medium text-slate-800 align-top group/cell relative pr-8">
-                            {item.item}
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); startEditingEntry(item); }}
-                              className="absolute right-0 top-3 text-slate-300 hover:text-indigo-600 opacity-0 group-hover/cell:opacity-100 transition-opacity p-1"
-                              title="Edit Entry"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
+  if (!isOpen) return null;
 
-                          <td className="px-4 py-3 align-top">{item.type === 'Fire Drill' ? <span className="inline-flex items-center text-red-600 text-xs font-bold"><Flame className="w-3 h-3 mr-1" /> Fire Drill</span> : <span className="text-slate-500 text-xs">{item.type}</span>}</td>
-                          <td className="px-4 py-3 align-top">
-                            <div className="flex flex-wrap gap-1">
-                              {item.tags && item.tags.length > 0 ? item.tags.map(tag => (
-                                <span key={tag} className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                                  {tag}
-                                </span>
-                              )) : <span className="text-xs text-slate-300">-</span>}
-                            </div>
-                          </td>
-                          <td onClick={() => toggleRowExpansion(item.id)} className="px-4 py-3 border-l border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors align-top relative group" title="Click to expand/collapse">
-                            <div className={`text-sm text-slate-900 italic leading-relaxed ${expandedRows.has(item.id) ? '' : 'line-clamp-2'}`}>{item.impact}</div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+  const handleSave = (e) => { e.preventDefault(); onSave([{ ...form, id: initialData?.id || Date.now().toString(), amount: Number(form.amount) }]); onClose(); onShowToast("Transaction Saved"); };
+  
+  // MODIFIED FOR LOCAL: Disable AI
+  const handleMagic = async (e) => { 
+    e.preventDefault(); 
+    onShowToast("AI features disabled in local-only build. Use manual entry or CSV import.", "error");
+  };
+  
+  const confirmMagic = () => { /* No Op in local */ };
+  
+  // MODIFIED FOR LOCAL: Disable Scan
+  const handleScan = (e) => { 
+    onShowToast("AI features disabled in local-only build. Use manual entry or CSV import.", "error");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+      <div className="bg-white w-full max-w-md rounded-t-3xl md:rounded-3xl border-t border-slate-100 shadow-2xl overflow-hidden flex flex-col h-[80vh] md:h-auto">
+        <div className="p-2 border-b border-slate-100 flex gap-2 bg-slate-50">
+          <button onClick={() => setMode("manual")} className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${mode === "manual" ? "bg-white shadow-sm text-blue-600 ring-1 ring-blue-100" : "text-slate-400 hover:text-slate-600"}`}>Manual</button>
+          <button onClick={() => setMode("magic")} className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1 ${mode === "magic" ? "bg-white shadow-sm text-blue-600 ring-1 ring-blue-100" : "text-slate-400 hover:text-slate-600"}`}><Icons.Sparkles size={14} /> Magic AI</button>
+          <label className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-slate-200 text-slate-400"><Icons.Camera size={14} /> Scan<input type="file" accept="image/*" onChange={handleScan} className="hidden" /></label>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600"><Icons.X size={20} /></button>
+        </div>
+        {mode === "manual" ? (
+          <form onSubmit={handleSave} className="p-6 space-y-5 flex-1 overflow-y-auto">
+            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-2xl font-light">$</span><input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-6 text-4xl font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="0.00" autoFocus required /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Date</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full bg-white border border-slate-200 p-3 rounded-xl font-medium text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none" required /></div>
+              <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Account</label><select value={form.account} onChange={(e) => setForm({ ...form, account: e.target.value })} className="w-full bg-white border border-slate-200 p-3 rounded-xl font-medium text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">{ACCOUNT_TYPES.map((t) => (<option key={t} value={t}>{t}</option>))}</select></div>
             </div>
+            <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Category</label><div className="grid grid-cols-3 gap-2">{categories.map((c) => (<button key={c.id} type="button" onClick={() => setForm({ ...form, categoryId: c.id })} className={`p-2.5 text-[11px] font-bold border rounded-xl truncate transition-all ${form.categoryId === c.id ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm" : "bg-white border-slate-100 text-slate-500 hover:border-slate-300"}`}>{c.name}</button>))}</div></div>
+            <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Add a note..." className="w-full bg-white border border-slate-200 p-4 rounded-xl font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" />
+            <button type="submit" className="w-full py-4 bg-blue-600 text-white font-bold text-lg rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition-transform">Save Transaction</button>
+          </form>
+        ) : (
+          <div className="p-6 flex flex-col h-full">
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4"><p className="text-blue-800 text-sm font-medium">✨ Type naturally or paste bulk text.</p></div><textarea value={magic} onChange={(e) => setMagic(e.target.value)} className="w-full h-40 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-lg text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none resize-none mb-4" placeholder="Type here..." autoFocus /><button onClick={handleMagic} disabled={loading} className="w-full mt-auto py-4 bg-blue-600 text-white font-bold text-lg rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-2">{loading ? "Processing..." : (<><Icons.Sparkles size={18} /> Analyze Text</>)}</button>
           </div>
         )}
-      </main>
+      </div>
+    </div>
+  );
+};
 
-      {/* --- COMPLETION MODAL --- */}
-      {completingTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 relative">
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
-              <div className="flex items-center justify-between text-white">
-                <h2 className="text-lg font-bold flex items-center"><Trophy className="w-5 h-5 mr-2" />Nice Work!</h2>
-                <button onClick={() => { setCompletingTask(null); clearUndoState(); }} className="text-indigo-200 hover:text-white"><X className="w-5 h-5" /></button>
-              </div>
-              <p className="text-indigo-100 text-sm mt-1 truncate opacity-90">You finished: "{completingTask.text}"</p>
-            </div>
-            <div className="p-6">
-              <div className="mb-4">
-                <label className="block text-sm font-bold text-slate-700 mb-2">Is this worth saving to your QBR Log?</label>
-                <p className="text-xs text-slate-500 mb-4">If yes, add a quick note on the impact. If no, it will just be archived.</p>
-                <textarea className="w-full text-sm border-slate-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500 min-h-[80px]" placeholder="e.g. 'Saved the client $2k', 'Improved QS to 8/10'..." value={impactNote} onChange={(e) => setImpactNote(e.target.value)} autoFocus></textarea>
-              </div>
-              
-              {/* Tags Selector in Modal */}
-              <div className="mb-6">
-                <label className="block text-xs font-bold text-slate-500 mb-2">Strategic Tags <span className="text-slate-300 font-normal">(Max 2)</span></label>
-                <div className="flex flex-wrap gap-1.5">
-                  {STRATEGIC_TAGS.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleCompletionTag(tag)}
-                      className={`text-[10px] px-2 py-1 rounded border transition-colors ${
-                        completionTags.includes(tag) 
-                          ? 'bg-indigo-100 text-indigo-700 border-indigo-200 font-bold' 
-                          : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
-              <div className="flex space-x-3">
-                <button onClick={confirmQbrSave} className="flex-1 bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center"><Save className="w-4 h-4 mr-2" />Yes, Save to Vault</button>
-                <button onClick={skipQbrSave} className="flex-1 bg-white border border-slate-200 text-slate-600 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors">No, Just Archive</button>
-              </div>
-            </div>
-          </div>
+/* =========================================================
+   5. VIEWS (Defined AFTER Modals, BEFORE MainContent)
+========================================================= */
+
+function NetWorthView({ accounts, snapshots, onSaveAccount, onDeleteAccount, onSaveSnapshots, onDeleteSnapshot, onUpdateSnapshot, onLoadDemo, onShowToast }) {
+  const [view, setView] = useState("dashboard");
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [editAccount, setEditAccount] = useState(null);
+  const [editingSnapshot, setEditingSnapshot] = useState(null); 
+  const [importText, setImportText] = useState("");
+  const [showTrendModal, setShowTrendModal] = useState(false); 
+
+  const latestSnapshotByAccount = useMemo(() => {
+    const map = {};
+    [...snapshots]
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .forEach((s) => {
+        map[s.accountId] = s;
+      });
+    return map;
+  }, [snapshots]);
+
+  const stats = useMemo(() => {
+    let assets = 0,
+      liabilities = 0;
+    accounts.forEach((acc) => {
+      if (!acc.isActive) return;
+      const bal = latestSnapshotByAccount[acc.id]?.balance || 0;
+      if (acc.type === "asset") assets += bal;
+      else liabilities += bal;
+    });
+    return { assets, liabilities, netWorth: assets - liabilities };
+  }, [accounts, latestSnapshotByAccount]);
+
+  const trendData = useMemo(() => {
+    const dates = [...new Set(snapshots.map((s) => s.date))].sort();
+    if (dates.length < 1) return [];
+    
+    const points = dates.map((date) => {
+      let a = 0,
+        l = 0;
+      accounts.forEach((acc) => {
+        const snap = snapshots
+          .filter((s) => s.accountId === acc.id && s.date <= date)
+          .sort((x, y) => new Date(y.date).getTime() - new Date(x.date).getTime())[0]; 
+        const bal = snap ? snap.balance : 0;
+        if (acc.type === "asset") a += bal;
+        else l += bal;
+      });
+      return { date, value: a - l }; 
+    });
+    return points;
+  }, [accounts, snapshots]);
+
+  // Sort snapshots for history view
+  const historyList = useMemo(() => {
+      return [...snapshots].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [snapshots]);
+
+  const handleJsonImport = () => {
+    try {
+      const data = JSON.parse(importText);
+      if (data.accounts) data.accounts.forEach((acc) => onSaveAccount({ ...acc, isNew: true }));
+      if (data.snapshots) onSaveSnapshots(data.snapshots);
+      onShowToast("Import Successful!");
+      setImportText("");
+    } catch {
+      onShowToast("Invalid JSON", "error");
+    }
+  };
+
+  // --- Empty State ---
+  if (accounts.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-6">
+        <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
+           <Icons.Landmark size={48} />
         </div>
-      )}
-
-      {/* --- EDIT ENTRY MODAL --- */}
-      {editingEntry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 relative flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-lg font-bold text-slate-800">Edit QBR Entry</h3>
-              <button onClick={() => setEditingEntry(null)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto">
-              {/* Item Text */}
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-500 mb-1">Item Description</label>
-                <input 
-                  type="text" 
-                  value={editItemText}
-                  onChange={(e) => setEditItemText(e.target.value)}
-                  className="w-full text-sm border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-
-              {/* Type Selection */}
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-500 mb-1">Type</label>
-                <select 
-                  value={editEntryType}
-                  onChange={(e) => setEditEntryType(e.target.value)}
-                  className="w-full text-sm border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option>Task</option>
-                  <option>Fire Drill</option>
-                  <option>Win</option>
-                  <option>Strategic Update</option>
-                </select>
-              </div>
-
-              {/* Impact Note */}
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-500 mb-1">Impact / Result</label>
-                <textarea 
-                  className="w-full text-sm border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 min-h-[80px]"
-                  value={editImpactText}
-                  onChange={(e) => setEditImpactText(e.target.value)}
-                ></textarea>
-              </div>
-
-              {/* Tags */}
-              <div className="mb-2">
-                <label className="block text-xs font-bold text-slate-500 mb-2">Strategic Tags <span className="text-slate-300 font-normal">(Max 2)</span></label>
-                <div className="flex flex-wrap gap-1.5">
-                  {STRATEGIC_TAGS.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleEditEntryTag(tag)}
-                      className={`text-[10px] px-2 py-1 rounded border transition-colors ${
-                        editEntryTags.includes(tag) 
-                          ? 'bg-indigo-100 text-indigo-700 border-indigo-200 font-bold' 
-                          : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end space-x-3">
-              <button 
-                onClick={() => setEditingEntry(null)}
-                className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={saveEditedEntry}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Track Your Net Worth</h2>
+          <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto">
+            Add your accounts to track your net worth over time.
+          </p>
         </div>
-      )}
+        <div className="space-y-3 w-full max-w-xs">
+          <button 
+            onClick={() => setShowAccountModal(true)}
+            className="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform"
+          >
+            Add First Account
+          </button>
+          <button 
+            onClick={onLoadDemo}
+            className="w-full py-3.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50"
+          >
+            Load Demo Data
+          </button>
+        </div>
+        {showAccountModal && (
+          <AccountModal account={null} onClose={() => setShowAccountModal(false)} onSave={onSaveAccount} onDelete={onDeleteAccount} />
+        )}
+      </div>
+    );
+  }
 
-      {/* --- EDIT ACTIVE TASK MODAL --- */}
-      {editingTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100 relative">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-lg font-bold text-slate-800">Edit Task</h3>
-              <button onClick={() => setEditingTask(null)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              {/* Task Text */}
+  return (
+    <div className="space-y-6">
+      <div className="flex p-1 bg-slate-100 rounded-xl">
+        <button
+          onClick={() => setView("dashboard")}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+            view === "dashboard" ? "bg-white shadow text-slate-900" : "text-slate-400"
+          }`}
+        >
+          Dashboard
+        </button>
+        <button
+          onClick={() => setView("accounts")}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+            view === "accounts" ? "bg-white shadow text-slate-900" : "text-slate-400"
+          }`}
+        >
+          Accounts
+        </button>
+        <button
+          onClick={() => setView("log")}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+            view === "log" ? "bg-white shadow text-slate-900" : "text-slate-400"
+          }`}
+        >
+          Data
+        </button>
+      </div>
+
+      {view === "dashboard" && (
+        <>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 text-center">
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+              Total Net Worth
+            </p>
+            <h2 className="text-4xl font-bold text-slate-900 tracking-tighter mb-6">
+              {formatCurrency(stats.netWorth)}
+            </h2>
+            <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Task Description</label>
-                <input 
-                  type="text" 
-                  value={editTaskTextState}
-                  onChange={(e) => setEditTaskTextState(e.target.value)}
-                  className="w-full text-sm border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                />
+                <p className="text-emerald-600 text-xs font-bold uppercase mb-1">Assets</p>
+                <p className="text-lg font-bold text-slate-800">{formatCurrency(stats.assets)}</p>
               </div>
-
-              {/* Client Selection */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Client</label>
-                <select 
-                  value={editTaskClientState}
-                  onChange={(e) => setEditTaskClientState(e.target.value)}
-                  className={`w-full text-sm border border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 font-medium ${getClientColor(editTaskClientState)}`}
-                >
-                  {clients.map(c => <option key={c}>{c}</option>)}
-                </select>
+                <p className="text-red-500 text-xs font-bold uppercase mb-1">Liabilities</p>
+                <p className="text-lg font-bold text-slate-800">
+                  {formatCurrency(stats.liabilities)}
+                </p>
               </div>
-
-              {/* Fire Drill Toggle */}
-              <div className="flex items-center justify-between bg-slate-50 p-3 rounded-md border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => setEditTaskFireDrillState(!editTaskFireDrillState)}>
-                <div className="flex items-center space-x-2">
-                  <Flame className={`w-4 h-4 ${editTaskFireDrillState ? 'text-red-500' : 'text-slate-400'}`} />
-                  <span className={`text-sm font-medium ${editTaskFireDrillState ? 'text-red-700' : 'text-slate-600'}`}>Fire Drill</span>
-                </div>
-                <div className={`w-10 h-5 rounded-full relative transition-colors ${editTaskFireDrillState ? 'bg-red-500' : 'bg-slate-300'}`}>
-                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${editTaskFireDrillState ? 'left-6' : 'left-1'}`}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end space-x-3">
-              <button 
-                onClick={() => setEditingTask(null)}
-                className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={saveEditedTask}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm"
-              >
-                Save
-              </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* --- IMPORT MODAL --- */}
-      {showImportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center">
-                <FileDown className="w-5 h-5 mr-2 text-indigo-600" /> Import QBR Data
-              </h3>
-              <button onClick={() => { setShowImportModal(false); setImportStats(null); }} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
+          <div onClick={() => setShowTrendModal(true)} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors">
+            <div className="flex justify-between items-center mb-4">
+               <h3 className="text-slate-800 font-bold text-sm uppercase">Trend (30 Days)</h3>
+               <Icons.ChevronRight size={16} className="text-slate-400" />
             </div>
-            
-            <div className="p-6 flex-1 overflow-y-auto">
-              {!importStats ? (
-                <div className="space-y-4">
-                  <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-700 border border-blue-100">
-                    <p className="font-bold mb-1">Requirements:</p>
-                    <ul className="list-disc pl-4 space-y-1 text-xs">
-                      <li>Headers (case-insensitive): Date, Client, Item, Type, Impact Note, Tags (optional)</li>
-                      <li>Date Format: YYYY-MM-DD</li>
-                      <li>Paste CSV data directly below.</li>
-                    </ul>
-                  </div>
-                  <textarea 
-                    className="w-full h-64 p-3 text-xs font-mono border border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder={`Date,Client,Item,Type,Impact Note,Tags\n2023-10-01,Client A,Example Item,Win,Great result,Optimization`}
-                    value={importText}
-                    onChange={(e) => setImportText(e.target.value)}
-                  />
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {importStats.error ? (
-                    <div className="bg-red-50 p-4 rounded-md border border-red-200 text-center">
-                      <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-                      <h4 className="text-red-800 font-bold mb-1">Validation Failed</h4>
-                      <p className="text-red-600 text-sm">{importStats.error}</p>
-                      <button onClick={() => setImportStats(null)} className="mt-4 text-indigo-600 hover:text-indigo-800 text-sm font-medium underline">Try Again</button>
+            {/* Show last 30 days preview here */}
+            <SimpleLineChart data={trendData.slice(-30)} />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-slate-400 text-xs font-bold uppercase pl-2">Accounts</h3>
+            {accounts
+              .filter((a) => a.isActive)
+              .map((acc) => (
+                <div
+                  key={acc.id}
+                  className="bg-white p-3 rounded-lg border border-slate-100 flex justify-between items-center"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-2 h-8 rounded-sm ${
+                        acc.type === "asset" ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    />
+                    <div>
+                      <p className="font-bold text-slate-700 text-sm">{acc.name}</p>
+                      <p className="text-[10px] text-slate-400">{acc.label}</p>
                     </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div className="bg-slate-50 p-3 rounded border border-slate-200">
-                          <div className="text-2xl font-bold text-slate-700">{importStats.total}</div>
-                          <div className="text-xs text-slate-500 uppercase font-bold">Total Rows</div>
-                        </div>
-                        <div className="bg-emerald-50 p-3 rounded border border-emerald-200">
-                          <div className="text-2xl font-bold text-emerald-700">{importStats.valid}</div>
-                          <div className="text-xs text-emerald-600 uppercase font-bold">Valid</div>
-                        </div>
-                        <div className="bg-red-50 p-3 rounded border border-red-200">
-                          <div className="text-2xl font-bold text-red-700">{importStats.rejected}</div>
-                          <div className="text-xs text-red-600 uppercase font-bold">Rejected</div>
-                        </div>
+                  </div>
+                  <span className="font-mono font-bold text-slate-800">
+                    {formatCurrency(latestSnapshotByAccount[acc.id]?.balance || 0)}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </>
+      )}
+
+      {view === "accounts" && (
+        <div className="space-y-4">
+          <button
+            onClick={() => {
+              setEditAccount(null);
+              setShowAccountModal(true);
+            }}
+            className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center gap-2"
+          >
+            <Icons.Plus size={16} /> Add Account
+          </button>
+
+          <div className="space-y-2">
+            {accounts.map((acc) => (
+              <div
+                key={acc.id}
+                onClick={() => {
+                  setEditAccount(acc);
+                  setShowAccountModal(true);
+                }}
+                className="bg-white p-4 rounded-xl border border-slate-200 flex justify-between items-center cursor-pointer hover:border-slate-300"
+              >
+                <div>
+                  <p className={`text-sm font-bold ${!acc.isActive ? "text-slate-400 line-through" : ""}`}>
+                    {acc.name}
+                  </p>
+                  <p className="text-[10px] text-slate-400 uppercase">{acc.label}</p>
+                </div>
+                <Icons.ChevronRight size={16} className="text-slate-300" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {view === "log" && (
+        <div className="space-y-6">
+          <button
+            onClick={() => setShowLogModal(true)}
+            className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-200"
+          >
+            <Icons.Plus size={18} /> Log Balance Snapshot
+          </button>
+
+           {/* Snapshot History Section */}
+           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+             <div className="p-4 border-b border-slate-100 font-bold text-sm text-slate-700 bg-slate-50">
+               History
+             </div>
+             <div className="max-h-96 overflow-y-auto">
+               {historyList.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 text-xs">No snapshots recorded yet.</div>
+               ) : (
+                  historyList.map(snap => {
+                     const acc = accounts.find(a => a.id === snap.accountId);
+                     return (
+                       <div 
+                         key={snap.id} 
+                         onClick={() => setEditingSnapshot({ ...snap, accountName: acc?.name })}
+                         className="flex items-center justify-between p-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer transition-colors"
+                       >
+                         <div>
+                            <p className="font-bold text-xs text-slate-700">{acc?.name || "Unknown Account"}</p>
+                            <p className="text-[10px] text-slate-400">{snap.date}</p>
+                         </div>
+                         <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-medium text-slate-900">{formatCurrency(snap.balance)}</span>
+                            <Icons.ChevronRight size={14} className="text-slate-300" />
+                         </div>
+                       </div>
+                     );
+                  })
+               )}
+             </div>
+           </div>
+
+          <div className="bg-white p-4 rounded-xl border border-slate-200">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={onLoadDemo}
+                className="py-2 bg-slate-50 border border-slate-200 text-slate-600 text-xs font-bold rounded-lg"
+              >
+                Load Demo
+              </button>
+              <button
+                className="py-2 bg-slate-50 border border-slate-200 text-slate-600 text-xs font-bold rounded-lg"
+                onClick={() => {
+                  copyToClipboard(JSON.stringify({ accounts, snapshots }), () => {
+                     onShowToast("JSON Copied");
+                  });
+                }}
+              >
+                Export JSON
+              </button>
+            </div>
+
+            <textarea
+              className="w-full h-24 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-mono mt-4"
+              placeholder="Paste JSON to Import"
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+            />
+
+            <button
+              onClick={handleJsonImport}
+              className="w-full mt-2 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg"
+            >
+              Import JSON
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showAccountModal && (
+        <AccountModal
+          account={editAccount}
+          onClose={() => {
+            setShowAccountModal(false);
+            setEditAccount(null);
+          }}
+          onSave={onSaveAccount}
+          onDelete={onDeleteAccount}
+        />
+      )}
+
+      {showLogModal && (
+        <SnapshotModal
+          accounts={accounts}
+          onClose={() => setShowLogModal(false)}
+          onSave={onSaveSnapshots}
+          onShowToast={onShowToast}
+        />
+      )}
+
+      {editingSnapshot && (
+         <EditSnapshotModal
+           snapshot={editingSnapshot}
+           onClose={() => setEditingSnapshot(null)}
+           onUpdate={onUpdateSnapshot}
+           onDelete={onDeleteSnapshot}
+         />
+      )}
+      
+      {showTrendModal && (
+          <TrendDetailModal 
+            data={trendData} 
+            accounts={accounts}
+            snapshots={snapshots}
+            onClose={() => setShowTrendModal(false)} 
+          />
+      )}
+    </div>
+  );
+}
+
+function DashboardView({ transactions = [], categories = [], viewDate }) {
+  const [showMixModal, setShowMixModal] = useState(false);
+
+  // --- Calculations ---
+  const currentMonth = viewDate.getMonth();
+  const currentYear = viewDate.getFullYear();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const today = new Date();
+
+  // If viewing a past/future month, "current day" logic shifts
+  const isCurrentMonth = currentMonth === today.getMonth() && currentYear === today.getFullYear();
+  let daysPassed = isCurrentMonth ? today.getDate() : daysInMonth; 
+  if (viewDate > today && !isCurrentMonth) daysPassed = 0; 
+
+  const daysLeft = daysInMonth - daysPassed;
+  const safeDaysLeft = daysLeft > 0 ? daysLeft : 1; 
+  const safeDaysPassed = daysPassed > 0 ? daysPassed : 1;
+
+  const monthlyTxs = transactions.filter((t) => {
+    const d = new Date(`${t.date}T12:00:00`);
+    return !Number.isNaN(d.getTime()) && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+
+  // FILTER: Show categories if they have spending OR a budget set
+  const activeCategories = categories.filter(c => {
+    const spend = monthlyTxs
+      .filter(t => t.categoryId === c.id)
+      .reduce((sum, t) => sum + safeNumber(t.amount), 0);
+    return spend > 0 || c.budget > 0;
+  });
+
+  const totalSpent = monthlyTxs.reduce((acc, t) => acc + (safeNumber(t.amount)), 0);
+  const totalBudget = categories.reduce((acc, c) => acc + (safeNumber(c.budget)), 0);
+  const remaining = totalBudget - totalSpent;
+
+  // Rent exclusion logic for "Daily Pace" card
+  const rentIds = categories
+    .filter((c) => c.name.toLowerCase().includes("rent") || c.name.toLowerCase().includes("mortgage"))
+    .map((c) => c.id);
+
+  const discBudget = categories
+    .filter((c) => !rentIds.includes(c.id))
+    .reduce((acc, c) => acc + safeNumber(c.budget), 0);
+
+  const discSpent = monthlyTxs
+    .filter((t) => !rentIds.includes(t.categoryId))
+    .reduce((acc, t) => acc + (safeNumber(t.amount)), 0);
+
+  const idealDaily = daysInMonth > 0 ? discBudget / daysInMonth : 0;
+  const currentDaily = safeDaysPassed > 0 ? discSpent / safeDaysPassed : 0;
+
+  // --- Hero Card Logic ---
+  const getStatusStyles = () => {
+    if (remaining < 0) return { bg: "bg-red-100", text: "text-red-700", border: "border-red-200", hero: "text-red-600", label: "Over budget" };
+    if (currentDaily > idealDaily * 1.1) return { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200", hero: "text-amber-600", label: "At risk" };
+    return { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-200", hero: "text-emerald-700", label: "On track" };
+  };
+  const styles = getStatusStyles();
+
+  const dailyRemaining = remaining > 0 ? remaining / safeDaysLeft : 0;
+
+  const catData = useMemo(() => {
+    const s = {};
+    monthlyTxs.forEach((t) => (s[t.categoryId] = (s[t.categoryId] || 0) + (safeNumber(t.amount))));
+    return categories
+      .map((c) => ({ id: c.id, name: c.name, value: s[c.id] || 0, color: c.color, budget: c.budget }))
+      // Corrected Filter: value > 0 OR budget > 0
+      .filter((c) => c.value > 0 || c.budget > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [monthlyTxs, categories]);
+
+  return (
+    <div className="space-y-6 pb-6">
+      
+      {/* 1. HERO CARD */}
+      <div className={`rounded-3xl p-6 border ${styles.border} bg-white shadow-sm flex flex-col items-center text-center relative overflow-hidden`}>
+        <div className={`absolute inset-0 opacity-10 ${styles.bg}`} />
+        
+        <div className="relative z-10 flex flex-col items-center">
+          <div className={`px-3 py-1 mb-4 rounded-full text-[10px] font-bold uppercase tracking-wider ${styles.bg} ${styles.text} ${styles.border} border`}>
+            {styles.label}
+          </div>
+
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Remaining Budget</h2>
+          
+          <div className={`text-5xl font-black tracking-tighter mb-2 ${styles.hero}`}>
+            {formatCurrency(remaining)}
+          </div>
+
+          <p className="text-slate-400 text-sm font-medium mb-6">
+            of {formatCurrency(totalBudget)} total
+          </p>
+
+          {remaining > 0 ? (
+             <div className="bg-slate-50/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-slate-100">
+               <p className="text-slate-600 text-xs font-medium">
+                 You can spend <span className="font-bold text-slate-900">{formatCurrencyPrecise(dailyRemaining)}</span>/day for the rest of the month.
+               </p>
+             </div>
+          ) : (
+             <div className="bg-red-50/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-red-100">
+               <p className="text-red-600 text-xs font-medium">
+                 You have exceeded your monthly budget.
+               </p>
+             </div>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Secondary Metrics (Daily Pace) */}
+      <div className="py-2"> 
+        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Daily Pace</h3>
+            <span className="text-[10px] text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-100">No Rent</span>
+          </div>
+
+          <div className="flex items-end justify-between mb-2">
+            <div>
+              <p className="text-[10px] text-slate-400 mb-0.5 uppercase">Actual / Day</p>
+              <p className="text-lg font-bold text-slate-700">{formatCurrencyPrecise(currentDaily)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-slate-400 mb-0.5 uppercase">Target</p>
+              <p className="text-lg font-bold text-slate-400">{formatCurrencyPrecise(idealDaily)}</p>
+            </div>
+          </div>
+
+          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full ${currentDaily > idealDaily ? "bg-orange-400" : "bg-blue-400"}`} 
+              style={{ width: `${Math.min((currentDaily / (idealDaily || 1)) * 100, 100)}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Spending Breakdown List */}
+      <div className="space-y-3">
+        <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider ml-1">Spending Breakdown</h3>
+        
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+          {catData.length === 0 ? (
+             <div className="p-6 text-center text-slate-400 text-xs">No spending yet this month.</div>
+          ) : (
+             catData.map((cat, idx) => {
+               const pct = cat.budget > 0 ? (cat.value / cat.budget) * 100 : 0;
+               const isOver = pct > 100;
+
+               return (
+                 <div key={cat.id} className="group px-4 py-3 border-b border-slate-50 last:border-0 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                   {/* Left: Identity */}
+                   <div className="flex items-center gap-3">
+                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                     <span className="text-xs font-bold text-slate-700">{cat.name}</span>
+                   </div>
+
+                   {/* Right: Metrics + Bar */}
+                   <div className="flex items-center gap-4">
+                      <div className="text-right flex items-center gap-2">
+                         <span className={`text-xs font-bold ${isOver ? "text-red-600" : "text-slate-800"}`}>
+                           {formatCurrency(cat.value)}
+                         </span>
+                         <span className="text-[10px] text-slate-400">/ {formatCurrency(cat.budget)}</span>
+                         
+                         {/* Percentage Badge */}
+                         <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${isOver ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+                           {Math.round(pct)}%
+                         </div>
                       </div>
                       
-                      {importStats.rejected > 0 && (
-                        <p className="text-xs text-red-500 mb-6 bg-red-50 p-2 rounded border border-red-100 inline-block">
-                          Note: {importStats.rejected} rows will be skipped due to missing required fields or invalid dates.
-                        </p>
-                      )}
+                      <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${isOver ? 'bg-red-500' : 'bg-slate-400'}`}
+                          style={{ width: `${Math.min(pct, 100)}%` }}
+                        />
+                      </div>
+                   </div>
+                 </div>
+               );
+             })
+          )}
+          
+          {/* Navigation Button */}
+          <button 
+            onClick={() => setShowMixModal(true)}
+            className="w-full py-4 bg-slate-50 hover:bg-slate-100 transition-colors text-xs font-bold text-slate-500 flex items-center justify-center gap-2"
+          >
+            <Icons.PieChart size={14} /> View Full Analysis <Icons.ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
 
-                      <p className="text-sm text-slate-600 mb-2">
-                        Ready to import? This will <strong>add to your existing data</strong>.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
-              {!importStats ? (
-                <button 
-                  onClick={validateAndParseCSV}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold hover:bg-indigo-700 transition-colors"
-                >
-                  Validate Data
-                </button>
-              ) : (
-                !importStats.error && (
-                  !importConfirmationStep ? (
-                    <>
-                      <button 
-                        onClick={() => setImportStats(null)}
-                        className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50"
-                      >
-                        Back
-                      </button>
-                      <button 
-                        onClick={() => setImportConfirmationStep(true)}
-                        className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm"
-                      >
-                        Import & Append
-                      </button>
-                    </>
-                  ) : (
-                    <div className="flex items-center space-x-3">
-                        <span className="text-xs text-slate-500 font-bold">Add {importStats.valid} items?</span>
-                        <button 
-                          onClick={() => setImportConfirmationStep(false)}
-                          className="px-3 py-2 bg-slate-100 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-200"
-                        >
-                          Cancel
-                        </button>
-                        <button 
-                          onClick={executeImport}
-                          className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm"
-                        >
-                          Yes, Import
-                        </button>
-                    </div>
-                  )
-                )
-              )}
-            </div>
+      {/* Full Screen Mix Modal */}
+      {showMixModal && (
+        <div className="fixed inset-0 z-[100] bg-white animate-in slide-in-from-bottom-10 duration-200 flex flex-col">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white">
+             <h2 className="text-xl font-bold text-slate-900">Spending Mix</h2>
+             <button onClick={() => setShowMixModal(false)} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200">
+               <Icons.X size={20} />
+             </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-6">
+             <div className="flex flex-col items-center mb-8">
+               <DonutChart data={catData} total={totalSpent} />
+               
+               {/* NEW: Mini Key / Legend */}
+               <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-8 max-w-xs mx-auto">
+                 {catData.map(cat => {
+                   if (cat.value === 0) return null;
+                   const pct = totalSpent > 0 ? (cat.value / totalSpent) * 100 : 0;
+                   return (
+                     <div key={cat.id} className="flex items-center gap-1.5">
+                       <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: cat.color }} />
+                       <span className="text-xs font-medium text-slate-600">
+                         {cat.name} <span className="text-slate-400 text-[10px]">({Math.round(pct)}%)</span>
+                       </span>
+                     </div>
+                   );
+                 })}
+               </div>
+             </div>
+             
+             <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-4 border-t border-slate-100 pt-6">Category Details</h3>
+             <div className="space-y-3">
+               {catData.map(cat => {
+                 if(cat.value === 0) return null;
+                 const pctOfTotal = totalSpent > 0 ? (cat.value / totalSpent) * 100 : 0;
+                 const pctOfBudget = cat.budget > 0 ? (cat.value / cat.budget) * 100 : 0;
+                 const isOver = pctOfBudget > 100;
+                 
+                 return (
+                   <div key={cat.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div className="flex items-center gap-3">
+                         <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: cat.color }} />
+                         <span className="font-bold text-slate-700">{cat.name}</span>
+                      </div>
+                      <div className="text-right">
+                         <div className="flex items-baseline justify-end gap-1.5 mb-1">
+                           <span className="font-bold text-slate-900">{formatCurrency(cat.value)}</span>
+                           <span className="text-xs text-slate-400 font-medium">/ {formatCurrency(cat.budget)}</span>
+                         </div>
+                         <div className="flex items-center justify-end gap-2 text-[10px] font-medium">
+                           <span className="text-slate-400">{pctOfTotal.toFixed(1)}% of total</span>
+                           <span className={`px-1.5 py-0.5 rounded ${isOver ? 'bg-red-100 text-red-600' : 'bg-slate-200 text-slate-600'}`}>
+                             {Math.round(pctOfBudget)}% of budget
+                           </span>
+                         </div>
+                      </div>
+                   </div>
+                 )
+               })}
+             </div>
           </div>
         </div>
       )}
-
-      {/* --- RESET CONFIRMATION MODAL --- */}
-      {resetConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="p-6 text-center">
-              <div className="bg-red-100 text-red-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-6 h-6" /></div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Reset Application?</h3>
-              <p className="text-sm text-slate-500 mb-6">This will permanently clear all tasks, clients, and QBR history. This action cannot be undone.</p>
-              <div className="flex space-x-3">
-                <button onClick={() => setResetConfirmOpen(false)} className="flex-1 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-md font-medium hover:bg-slate-50 transition-colors">Cancel</button>
-                <button onClick={executeReset} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors shadow-sm">Reset Everything</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- SUCCESS TOAST (Generic) --- */}
-      {(showUndoToast || resetSuccess) && (
-        <div className="fixed bottom-6 right-6 z-60 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-slate-900 text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-4 border border-slate-700">
-            <div className="flex items-center space-x-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              <span className="text-sm font-medium">{resetSuccess ? "Application reset." : "Task completed"}</span>
-            </div>
-            {showUndoToast && !resetSuccess && (
-              <button 
-                onClick={handleUndo}
-                className="flex items-center space-x-1 px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold uppercase tracking-wider transition-colors"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Undo</span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* --- DELETE CLIENT CONFIRMATION MODAL --- */}
-      {clientToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="p-6 text-center">
-              <div className="bg-red-100 text-red-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-6 h-6" /></div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Client?</h3>
-              <p className="text-sm text-slate-500 mb-6">Are you sure you want to delete <span className="font-bold text-slate-700">"{clientToDelete}"</span>? This will permanently remove all associated tasks and QBR history.</p>
-              <div className="flex space-x-3">
-                <button onClick={() => setClientToDelete(null)} className="flex-1 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-md font-medium hover:bg-slate-50 transition-colors">Cancel</button>
-                <button onClick={executeDeleteClient} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors shadow-sm">Delete Everything</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
+  );
+}
+
+function HistoryView({ transactions = [], categories = [], viewDate, onEdit, onDelete }) {
+  const currentMonth = viewDate.getMonth();
+  const currentYear = viewDate.getFullYear();
+  const [search, setSearch] = useState("");
+
+  const monthlyTx = transactions.filter((t) => {
+    const d = new Date(`${t.date}T12:00:00`);
+    return !Number.isNaN(d.getTime()) && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+  const filtered = monthlyTx.filter((t) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    const c = categories.find((cat) => cat.id === t.categoryId);
+    return t.note?.toLowerCase().includes(s) || c?.name.toLowerCase().includes(s) || String(t.amount).includes(s);
+  });
+  const grouped = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date)).reduce((acc, t) => {
+    const label = new Date(`${t.date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    (acc[label] ||= []).push(t);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search transactions..." className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-all" />
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.List size={16} /></div>
+      </div>
+      {Object.entries(grouped).map(([date, items]) => (
+        <div key={date}>
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 py-2">{date}</h3>
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            {items.map((t, idx) => {
+              const cat = categories.find((c) => c.id === t.categoryId);
+              return (
+                <div key={t.id} onClick={() => onEdit(t)} className={`flex justify-between items-center p-4 hover:bg-slate-50 transition-colors cursor-pointer ${idx !== items.length - 1 ? "border-b border-slate-100" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 flex items-center justify-center text-white font-bold text-sm rounded-full shadow-sm" style={{ backgroundColor: cat?.color || "#94a3b8" }}>{cat?.name?.[0] || "?"}</div>
+                    <div className="overflow-hidden"><p className="font-bold text-slate-900 text-sm truncate">{cat?.name || "Unknown"}</p><p className="text-xs text-slate-500 truncate max-w-[140px]">{t.note || t.account}</p></div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-slate-900 text-sm">{formatCurrencyPrecise(t.amount)}</span>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(t.id); }} className="text-slate-300 hover:text-red-500 transition-colors"><Icons.Trash2 size={16} /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SettingsView({ categories = [], onUpdateCategories, onSaveCategory, onDeleteCategory, transactions = [], onImportCSV, viewDate, onClearMonth, onShowToast }) {
+  const [editCat, setEditCat] = useState(null);
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const currentMonthTransactions = transactions.filter((t) => {
+    const d = new Date(`${t.date}T12:00:00`);
+    return d.getMonth() === viewDate.getMonth() && d.getFullYear() === viewDate.getFullYear();
+  });
+  return (
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 tracking-wider">Categories</h3>
+        <div className="space-y-2">
+          {categories.map((cat, idx) => (
+            <div key={cat.id} onClick={() => { setEditCat(cat); setShowCatModal(true); }} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-xl group hover:border-slate-300 transition-colors cursor-pointer">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                <span className="font-semibold text-slate-700 text-sm">{cat.name}</span>
+              </div>
+              <div className="flex items-center gap-2"><span className="text-slate-400 text-xs font-medium">{formatCurrency(cat.budget)}</span><Icons.ChevronRight size={16} className="text-slate-300" /></div>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => { setEditCat(null); setShowCatModal(true); }} className="w-full mt-4 py-3 border border-dashed border-slate-300 text-slate-500 font-bold text-xs rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-slate-700 hover:border-slate-400 transition-all"><Icons.Plus size={16} /> Add Category</button>
+      </div>
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 tracking-wider">Data Management</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => { let csv = "Date,Category,Amount,Account,Note\n"; transactions.forEach((t) => { const catName = categories.find((c) => c.id === t.categoryId)?.name || "Unknown"; csv += `${t.date},"${catName}",${t.amount},${t.account},"${(t.note || "").replace(/"/g, '""')}"\n`; }); copyToClipboard(csv, () => onShowToast("CSV Copied!")); }} className="py-3 bg-white border border-slate-200 text-slate-600 font-bold text-xs rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50"><Icons.Share size={16} /> Export CSV</button>
+          <button onClick={() => setShowImport(true)} className="py-3 bg-white border border-slate-200 text-slate-600 font-bold text-xs rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50">Import CSV</button>
+        </div>
+        <button onClick={() => onClearMonth(currentMonthTransactions.map((t) => t.id))} disabled={currentMonthTransactions.length === 0} className="w-full mt-3 py-3 border border-red-100 text-red-500 font-bold text-xs rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-red-50"><Icons.Trash2 size={16} /> Clear This Month</button>
+      </div>
+      {showCatModal && <CategoryModal cat={editCat} onClose={() => setShowCatModal(false)} onSave={onSaveCategory} onDelete={onDeleteCategory} />}
+      {showImport && <ImportModal onClose={() => setShowImport(false)} onImport={onImportCSV} categories={categories} onShowToast={onShowToast} />}
+    </div>
+  );
+};
+
+/* =========================================================
+   6. MAIN CONTENT (Refactored for Local Storage)
+========================================================= */
+
+function MainContent() {
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [transactions, setTransactions] = useState([]);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [viewDate, setViewDate] = useState(new Date());
+  const [nwAccounts, setNwAccounts] = useState([]);
+  const [nwSnapshots, setNwSnapshots] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [toast, setToast] = useState({ message: "", type: "success", visible: false });
+
+  const showToastMsg = (message, type = "success") => {
+    setToast({ message, type, visible: true });
+    setTimeout(() => setToast((p) => ({ ...p, visible: false })), 3500);
+  };
+
+  // LOAD DATA ON MOUNT
+  useEffect(() => {
+    setCategories(LocalDB.getCategories());
+    setTransactions(LocalDB.getTransactions());
+    setNwAccounts(LocalDB.getAccounts());
+    setNwSnapshots(LocalDB.getSnapshots());
+  }, []);
+
+  const changeMonth = (delta) => {
+    const d = new Date(viewDate);
+    d.setMonth(d.getMonth() + delta);
+    setViewDate(d);
+  };
+
+  const handleSaveTransaction = async (txs) => {
+    const arr = Array.isArray(txs) ? txs : [txs];
+    const cleaned = arr.map((tx) => ({ 
+      ...tx, 
+      amount: safeNumber(tx.amount), 
+      date: safeDate(tx.date),
+      timestamp: Date.now() // Local timestamp replacement
+    }));
+    
+    // Update Local Storage
+    const updatedTxs = LocalDB.upsertTransactions(cleaned);
+    
+    // Update State
+    setTransactions(updatedTxs);
+    setEditingTransaction(null);
+  };
+
+  const handleDeleteTransaction = async (id) => {
+    const updated = LocalDB.deleteTransactions(id);
+    setTransactions(updated);
+  };
+
+  const handleUpdateCategories = async (newCats) => {
+    LocalDB.saveCategories(newCats);
+    setCategories(newCats);
+  };
+
+  const handleSaveCategory = async (cat) => {
+    const newCats = [...categories];
+    const idx = newCats.findIndex((c) => c.id === cat.id);
+    if (idx >= 0) newCats[idx] = cat;
+    else newCats.push(cat);
+    await handleUpdateCategories(newCats);
+  };
+
+  const handleDeleteCategory = async (id) => {
+    await handleUpdateCategories(categories.filter((c) => c.id !== id));
+  };
+
+  const handleImportCSV = async (dataList) => {
+    if (!Array.isArray(dataList) || dataList.length === 0) return;
+    const cleaned = dataList.map((item) => {
+      const catId = findCategoryId(item.categoryName, categories);
+      return {
+        ...item, 
+        id: generateID(),
+        amount: safeNumber(item.amount), 
+        date: safeDate(item.date), 
+        categoryId: catId, 
+        timestamp: Date.now(),
+      };
+    });
+    const updated = LocalDB.upsertTransactions(cleaned);
+    setTransactions(updated);
+    showToastMsg(`Imported ${cleaned.length} transactions!`);
+  };
+
+  const handleClearMonth = async (ids) => {
+    if (!Array.isArray(ids) || ids.length === 0) return;
+    const updated = LocalDB.deleteTransactions(ids);
+    setTransactions(updated);
+    showToastMsg("Cleared transactions");
+  };
+
+  const handleWipeAllData = async () => {
+    const fresh = LocalDB.wipeAll();
+    setCategories(fresh.c);
+    setTransactions(fresh.t);
+    setNwAccounts(fresh.a);
+    setNwSnapshots(fresh.s);
+    showToastMsg("Wiped Data");
+  };
+
+  const handleSaveAccount = async (acc) => {
+    let type = acc.type;
+    if (!type) type = ASSET_LABELS.includes(acc.label) ? "asset" : "liability";
+    const { isNew, ...rest } = acc;
+    // Fix: Generate ID if missing so upsert works correctly
+    const data = { ...rest, id: rest.id || generateID(), type, isActive: acc.isActive !== false };
+    
+    const updated = LocalDB.upsertAccount(data);
+    setNwAccounts(updated);
+    showToastMsg("Account Saved");
+  };
+
+  const handleDeleteAccount = async (id) => { 
+    const updated = LocalDB.deleteAccount(id);
+    setNwAccounts(updated);
+  };
+  
+  const handleSaveSnapshots = async (snaps) => {
+    if (!Array.isArray(snaps)) return;
+    const cleaned = snaps.map((s) => ({
+      ...s,
+      balance: safeNumber(s.balance),
+      date: safeDate(s.date),
+      timestamp: Date.now()
+    }));
+    
+    const updated = LocalDB.upsertSnapshots(cleaned);
+    setNwSnapshots(updated);
+    showToastMsg("Balances Logged");
+  };
+  
+  const handleDeleteSnapshot = async (id) => { 
+    const updated = LocalDB.deleteSnapshot(id);
+    setNwSnapshots(updated);
+  };
+
+  const handleUpdateSnapshot = async (snap) => {
+    const cleaned = {
+      ...snap,
+      balance: safeNumber(snap.balance),
+      date: safeDate(snap.date),
+      timestamp: Date.now()
+    };
+    const updated = LocalDB.upsertSnapshots(cleaned);
+    setNwSnapshots(updated);
+    showToastMsg("Snapshot Updated");
+  };
+
+  const handleDemoData = async () => {
+    const accounts = [{ id: generateID(), name: "Chase Checking", type: "asset", label: "Checking", isActive: true }, { id: generateID(), name: "Amex Gold", type: "liability", label: "Credit Card", isActive: true }];
+    const snaps = [];
+    const now = new Date();
+    
+    for (let i = 2; i >= 0; i--) {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      accounts.forEach((acc) => {
+        let bal = 1000;
+        if (acc.type === "asset") bal += Math.random() * 500 + (2-i) * 100;
+        else bal = 500 + Math.random() * 50;
+        snaps.push({ id: generateID(), accountId: acc.id, date: dateStr, balance: Number(bal.toFixed(2)), note: "Demo" });
+      });
+    }
+
+    const newAccts = LocalDB.upsertAccount(accounts[0]); 
+    LocalDB.upsertAccount(accounts[1]);
+    const finalAccts = LocalDB.getAccounts(); // Reload full list
+    
+    const finalSnaps = LocalDB.upsertSnapshots(snaps);
+    
+    setNwAccounts(finalAccts);
+    setNwSnapshots(finalSnaps);
+    showToastMsg("Demo Data Loaded!");
+  };
+
+  return (
+    <div className="flex flex-col h-screen max-w-md mx-auto bg-[#F4F6F8] font-sans text-slate-900 border-x border-slate-200 shadow-2xl relative overflow-hidden">
+      <div className="flex items-center justify-between p-6 pb-4 z-10 bg-[#F4F6F8]/90 backdrop-blur-md sticky top-0">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800 tracking-tight">{activeTab === "networth" ? "Net Worth" : "Spend Manager"}</h1>
+          {activeTab !== "networth" && (
+            <div className="flex items-center gap-1 mt-1">
+              <button onClick={() => changeMonth(-1)} className="p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"><Icons.ChevronLeft size={16} /></button>
+              <span className="text-sm font-semibold text-slate-600 w-24 text-center font-mono uppercase">{viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+              <button onClick={() => changeMonth(1)} className="p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"><Icons.ChevronRight size={16} /></button>
+            </div>
+          )}
+        </div>
+        <button onClick={() => setShowProfile(true)} className="w-9 h-9 bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-500 rounded-full hover:bg-slate-100 hover:text-slate-900 transition-all"><Icons.User size={18} /></button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto scrollbar-hide pb-32 px-4 pt-2">
+        {activeTab === "dashboard" && <DashboardView transactions={transactions} categories={categories} viewDate={viewDate} />}
+        {activeTab === "list" && <HistoryView transactions={transactions} categories={categories} viewDate={viewDate} onEdit={(t) => { setEditingTransaction({ ...t, isEdit: true }); setShowAddModal(true); }} onDelete={handleDeleteTransaction} />}
+        {activeTab === "settings" && <SettingsView categories={categories} transactions={transactions} onUpdateCategories={handleUpdateCategories} onSaveCategory={handleSaveCategory} onDeleteCategory={handleDeleteCategory} onClearMonth={handleClearMonth} viewDate={viewDate} onImportCSV={handleImportCSV} onShowToast={showToastMsg} />}
+        {activeTab === "networth" && <NetWorthView accounts={nwAccounts} snapshots={nwSnapshots} onSaveAccount={handleSaveAccount} onDeleteAccount={handleDeleteAccount} onSaveSnapshots={handleSaveSnapshots} onDeleteSnapshot={handleDeleteSnapshot} onUpdateSnapshot={handleUpdateSnapshot} onLoadDemo={handleDemoData} onShowToast={showToastMsg} />}
+      </div>
+
+      {activeTab !== "networth" && (
+        <button onClick={() => { setEditingTransaction(null); setShowAddModal(true); }} className="absolute bottom-24 right-6 w-14 h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95 z-20"><Icons.Plus size={28} strokeWidth={2.5} /></button>
+      )}
+
+      <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-100 p-2 pb-6 flex justify-around z-30">
+        <NavButton icon={Icons.PieChart} label="Overview" isActive={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} />
+        <NavButton icon={Icons.List} label="Transactions" isActive={activeTab === "list"} onClick={() => setActiveTab("list")} />
+        <NavButton icon={Icons.Landmark} label="Net Worth" isActive={activeTab === "networth"} onClick={() => setActiveTab("networth")} />
+        <NavButton icon={Icons.Settings} label="Settings" isActive={activeTab === "settings"} onClick={() => setActiveTab("settings")} />
+      </div>
+
+      <TransactionModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onSave={handleSaveTransaction} categories={categories} initialData={editingTransaction} onShowToast={showToastMsg} />
+      <ProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} transactions={transactions} categories={categories} onWipeData={handleWipeAllData} />
+      {toast.visible && <Toast message={toast.message} type={toast.type} onClose={() => setToast((p) => ({ ...p, visible: false }))} />}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <MainContent />
+    </ErrorBoundary>
   );
 }
