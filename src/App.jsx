@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx"; 
 
 /* =========================================================
-   1. xxxxxICONS (Defined locally to prevent import crashes)
+   1. please workxICONS (Defined locally to prevent import crashes)
 ========================================================= */
 const Icon = ({ path, size = 20, className = "" }) => (
   <svg
