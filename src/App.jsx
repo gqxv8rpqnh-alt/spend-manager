@@ -292,6 +292,7 @@ const ErrorBoundary = class extends React.Component {
   }
 };
 
+// ... other UI components ...
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => {
     if (!message) return;
@@ -359,7 +360,6 @@ const SimpleLineChart = ({ data, color = "#10b981" }) => {
   );
 };
 
-// NEW: Simple Bar Chart for Income History
 const SimpleBarChart = ({ data, target }) => {
   if (!data || data.length === 0) return <div className="h-32 flex items-center justify-center text-slate-400 text-xs">No data</div>;
   
@@ -451,19 +451,16 @@ const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
    4. MODALS (Defined BEFORE Views)
 ========================================================= */
 
-// NEW: Income Details Modal
 const IncomeDetailsModal = ({ isOpen, onClose, transactions, expectedIncome }) => {
     const [expandedMonth, setExpandedMonth] = useState(null);
 
     const today = new Date();
     const currentYear = today.getFullYear();
 
-    // 1. Calculate YTD Income (safe to run every render, fast enough)
     const ytdIncome = transactions
         .filter(t => t.type === 'income' && new Date(t.date).getFullYear() === currentYear)
         .reduce((sum, t) => sum + safeNumber(t.amount), 0);
 
-    // 2. Prepare 12-month data with transactions (Moved usage of useMemo before early return)
     const last12Months = useMemo(() => {
         const data = [];
         for (let i = 11; i >= 0; i--) {
@@ -489,13 +486,12 @@ const IncomeDetailsModal = ({ isOpen, onClose, transactions, expectedIncome }) =
             });
         }
         return data;
-    }, [transactions]); // removed 'today' from dependency array as it's created on render, could cause loops if not careful, but here it's fine as a const. Ideally 'today' shouldn't be a dependency if we want stability, or useMemo it too. For now leaving it as per logic, but transactions dependency is key.
+    }, [transactions]); 
 
     const toggleExpand = (monthId) => {
         setExpandedMonth(prev => prev === monthId ? null : monthId);
     };
 
-    // MOVED EARLY RETURN HERE
     if (!isOpen) return null;
 
     return (
@@ -508,13 +504,11 @@ const IncomeDetailsModal = ({ isOpen, onClose, transactions, expectedIncome }) =
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-                {/* YTD Header */}
                 <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 mb-8 text-center">
                     <p className="text-emerald-600 text-xs font-bold uppercase tracking-wider mb-1">{currentYear} Year-to-Date Income</p>
                     <h3 className="text-4xl font-black text-emerald-700 tracking-tight">{formatCurrency(ytdIncome)}</h3>
                 </div>
 
-                {/* Chart */}
                 <div className="mb-8">
                     <div className="flex justify-between items-center mb-4">
                          <h3 className="text-xs font-bold text-slate-400 uppercase">Last 12 Months</h3>
@@ -523,7 +517,6 @@ const IncomeDetailsModal = ({ isOpen, onClose, transactions, expectedIncome }) =
                     <SimpleBarChart data={last12Months} target={expectedIncome} />
                 </div>
 
-                {/* List */}
                 <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">Monthly Breakdown</h3>
                 <div className="space-y-0 border-t border-slate-100">
                     {[...last12Months].reverse().map((m, i) => {
@@ -576,6 +569,7 @@ const IncomeDetailsModal = ({ isOpen, onClose, transactions, expectedIncome }) =
     );
 };
 
+// ... other modals ...
 const CategoryModal = ({ cat, onClose, onSave, onDelete }) => {
   const [name, setName] = useState(cat?.name || "");
   const [budget, setBudget] = useState(cat?.budget ?? "");
@@ -1047,26 +1041,21 @@ function NetWorthView({ accounts, snapshots, onSaveAccount, onDeleteAccount, onS
     const dates = [...new Set(snapshots.map((s) => s.date))].sort();
     if (dates.length < 1) return [];
     
-    return dates.map((date) => {
-      let assets = 0;
-      let liabilities = 0;
-      
+    const points = dates.map((date) => {
+      let a = 0,
+        l = 0;
       accounts.forEach((acc) => {
         const snap = snapshots
           .filter((s) => s.accountId === acc.id && s.date <= date)
           .sort((x, y) => new Date(y.date).getTime() - new Date(x.date).getTime())[0]; 
         const bal = snap ? safeNumber(snap.balance) : 0;
-        
-        if (acc.type === "asset") {
-            assets += bal;
-        } else {
-            liabilities += bal;
-        }
+        if (acc.type === "asset") a += bal;
+        else l += bal;
       });
-      
-      return { date, value: assets - liabilities };
+      return { date, value: a - l }; 
     });
-  }, [snapshots, accounts]);
+    return points;
+  }, [accounts, snapshots]);
 
   // Sort snapshots for history view
   const historyList = useMemo(() => {
@@ -1852,7 +1841,7 @@ function SettingsView({ categories = [], onUpdateCategories, onSaveCategory, onD
           <div className="flex items-center justify-between bg-red-50 border border-red-100 p-4 rounded-xl shadow-sm">
              <div>
                 <p className="text-red-700 font-bold text-sm">Over Budget by {formatCurrency(Math.abs(leftToBudget))}</p>
-                <p className="text-red-500 text-[10px] font-medium">Reduce category targets to balance with expected income.</p>
+                <p className="text-red-500 text-[10px] font-medium">Reduce category targets to balance.</p>
              </div>
              <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center text-red-600">
                 <Icons.AlertTriangle size={16} />
